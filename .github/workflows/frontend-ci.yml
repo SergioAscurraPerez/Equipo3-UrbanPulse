@@ -1,0 +1,73 @@
+name: Frontend DevSecOps CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/frontend/**'
+      - 'mf-dashboard/**'
+      - 'mf-mapa-urbano/**'
+
+jobs:
+  sast-codeql:
+    name: Análisis de Seguridad React (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+    - name: Checkout del repositorio
+      uses: actions/checkout@v4
+    - name: Inicializar CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript-typescript
+    - name: Ejecutar Análisis CodeQL
+      uses: github/codeql-action/analyze@v3
+
+  sast-secrets-vite:
+    name: Escáner de Secretos Vite
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout del repositorio
+      uses: actions/checkout@v4
+    - name: Buscar secretos VITE_ hardcodeados
+      run: |
+        if grep -rnw -E 'VITE_API_KEY=|VITE_DB_PASSWORD=' ./src/frontend ./mf-dashboard ./mf-mapa-urbano; then
+          echo "🚨 ALERTA: Se detectaron credenciales VITE_ quemadas en el código fuente."
+          exit 1
+        fi
+
+  calidad-eslint-sca:
+    name: Auditoría de Código y Dependencias
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout del repositorio
+      uses: actions/checkout@v4
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Validar Shell Frontend
+      run: |
+        cd src/frontend
+        npm ci
+        npm run lint --if-present
+        npm audit --audit-level=critical
+
+    - name: Validar MF Dashboard
+      run: |
+        cd mf-dashboard
+        npm ci
+        npm run lint --if-present
+        npm audit --audit-level=critical
+
+    - name: Validar MF Mapa
+      run: |
+        cd mf-mapa-urbano
+        npm ci
+        npm run lint --if-present
+        npm audit --audit-level=critical
