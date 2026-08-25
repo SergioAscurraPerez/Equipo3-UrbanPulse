@@ -1,0 +1,7 @@
+$kind: http-request
+url: http://localhost:5678/webhook/urbanpulse/report
+method: POST
+body:
+  type: json
+  content: '{ "latitude": -12.0464, "longitude": -77.0428 }s'
+order: 3850787020851970

@@ -1,0 +1,14 @@
+$kind: http-request
+name: 01 - Reporte valido con bache
+description: ""
+url: http://localhost:5678/webhook/urbanpulse/report
+method: POST
+body:
+  type: file
+  content:
+    src: ""
+scripts:
+  - type: afterResponse
+    code: pm.test("Status 200", () => pm.response.to.have.status(200)); pm.test("Tiene incident_type", () => pm.expect(pm.response.json().incident_type).to.exist);
+    language: text/javascript
+order: 1787361167290

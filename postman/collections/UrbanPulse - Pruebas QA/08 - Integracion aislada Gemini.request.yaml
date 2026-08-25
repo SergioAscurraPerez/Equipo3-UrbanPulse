@@ -1,0 +1,10 @@
+$kind: http-request
+description: ""
+url: https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={{gemini_api_key}}
+method: POST
+queryParams:
+  key: {{gemini_api_key}}
+body:
+  type: json
+  content: '{ "contents": [{ "parts": [{ "text": "Responde únicamente con la palabra OK si puedes leer este mensaje." }] }] }'
+order: 4502471894107229
