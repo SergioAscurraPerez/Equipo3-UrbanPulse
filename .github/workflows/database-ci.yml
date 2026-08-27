@@ -1,0 +1,28 @@
+name: Database CI (SQL Linter)
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'database/**'
+
+jobs:
+  lint-sql:
+    name: Auditoría Estática de SQL
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar entorno Python y SQLFluff
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Instalar Linter
+        run: pip install sqlfluff
+
+      - name: Auditar sintaxis de PostgreSQL
+        # Revisa estrictamente el dialecto de Postgres en todos los archivos .sql
+        run: sqlfluff lint database/ --dialect postgres
