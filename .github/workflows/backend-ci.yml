@@ -1,0 +1,67 @@
+name: Backend CI (SAST & n8n Webhook Tests)
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/n8n-workflows/**'
+      - 'infrastructure/**'
+      - 'postman/**'
+
+jobs:
+  # ==========================================
+  # JOB 1: Escáner Estático de Secretos (SAST)
+  # ==========================================
+  security-sast:
+    name: Escáner de Secretos en Workflows n8n
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Auditar llaves hardcodeadas en JSON
+        # Busca recursivamente cadenas que coincidan con tokens de IA (ej. sk-...)
+        run: |
+          echo "Iniciando auditoría de seguridad en src/n8n-workflows/templates/..."
+          if grep -rnE '(sk-[a-zA-Z0-9]{20,}|AIza[0-9A-Za-z-_]{35})' src/n8n-workflows/templates/ ; then
+            echo "🚨 ¡ALERTA! Se detectaron posibles credenciales hardcodeadas en los workflows n8n."
+            echo "Por favor, usa el gestor de credenciales nativo de n8n o variables de entorno."
+            exit 1
+          else
+            echo "✅ Escaneo completado: No se encontraron secretos en texto plano."
+          fi
+
+  # ==========================================
+  # JOB 2: Pruebas de Integración (Newman)
+  # ==========================================
+  api-integration-tests:
+    name: Pruebas de Integración de API
+    needs: security-sast # Este job solo corre si el escáner SAST pasa con éxito
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Levantar Infraestructura Local (Docker Compose)
+        # Emula el entorno de la Guía de Instalación Local
+        run: |
+          cd infrastructure
+          docker compose up -d
+          
+      - name: Esperar a que n8n y PostgreSQL estén listos
+        run: |
+          echo "Esperando a que el puerto 5678 responda..."
+          sleep 20 # Tiempo de gracia para que n8n levante completamente
+
+      - name: Instalar Newman
+        # Instalamos el runner oficial de Postman por línea de comandos
+        run: npm install -g newman
+
+      - name: Ejecutar Colección de Pruebas QA
+        # Dispara los casos de prueba (Happy Path, Prompt Injection, etc.)
+        # Ajusta la ruta a tu archivo JSON/YAML de colección exportado
+        run: |
+          echo "Disparando pruebas contra http://localhost:5678/webhook/urbanpulse/report..."
+          # Reemplaza 'ruta/a/tu/coleccion.json' con el archivo consolidado de tu colección QA
+          newman run "postman/collections/UrbanPulse - Pruebas QA/collection.json"
