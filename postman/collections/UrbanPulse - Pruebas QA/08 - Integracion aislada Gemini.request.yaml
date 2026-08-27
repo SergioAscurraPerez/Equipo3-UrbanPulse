@@ -7,4 +7,14 @@ queryParams:
 body:
   type: json
   content: '{ "contents": [{ "parts": [{ "text": "Responde únicamente con la palabra OK si puedes leer este mensaje." }] }] }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status 200", () => pm.response.to.have.status(200));
+      pm.test("Gemini devuelve una respuesta con texto", () => {
+        const json = pm.response.json();
+        const text = json.candidates && json.candidates[0] && json.candidates[0].content.parts[0].text;
+        pm.expect(text).to.exist;
+      });
+    language: text/javascript
 order: 4502471894107229

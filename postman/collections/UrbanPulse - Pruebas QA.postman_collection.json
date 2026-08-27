@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "477ff3bb-26b9-424a-9f1d-ff73792b516c",
+    "_postman_id": "405b4c7c-807e-469f-bb9e-eac08a9eb81d",
     "name": "UrbanPulse - Pruebas QA",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -323,7 +323,23 @@
           }
         }
       },
-      "response": []
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Gemini devuelve una respuesta con texto\", () => {",
+              "  const json = pm.response.json();",
+              "  const text = json.candidates && json.candidates[0] && json.candidates[0].content.parts[0].text;",
+              "  pm.expect(text).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "09 - Integracion TomTom",

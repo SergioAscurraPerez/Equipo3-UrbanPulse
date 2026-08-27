@@ -27,7 +27,15 @@ const etapa2 = {
       "08 - Integracion aislada Gemini",
       "POST",
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={{gemini_api_key}}",
-      '{ "contents": [{ "parts": [{ "text": "Responde únicamente con la palabra OK si puedes leer este mensaje." }] }] }'
+      '{ "contents": [{ "parts": [{ "text": "Responde únicamente con la palabra OK si puedes leer este mensaje." }] }] }',
+      [
+        'pm.test("Status 200", () => pm.response.to.have.status(200));',
+        'pm.test("Gemini devuelve una respuesta con texto", () => {',
+        '  const json = pm.response.json();',
+        '  const text = json.candidates && json.candidates[0] && json.candidates[0].content.parts[0].text;',
+        '  pm.expect(text).to.exist;',
+        '});',
+      ].join("\n")
     ),
     item(
       "09 - Integracion TomTom",
