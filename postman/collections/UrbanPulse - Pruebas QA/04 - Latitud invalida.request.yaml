@@ -4,4 +4,8 @@ method: POST
 body:
   type: json
   content: '{ "description": "Bache", "latitude": "esto no es un numero", "longitude": -77.0428}'
+scripts:
+  - type: afterResponse
+    code: pm.test("El backend no debe devolver 200 con una latitud no numerica", () => pm.response.to.not.have.status(200));
+    language: text/javascript
 order: 4426074301354736

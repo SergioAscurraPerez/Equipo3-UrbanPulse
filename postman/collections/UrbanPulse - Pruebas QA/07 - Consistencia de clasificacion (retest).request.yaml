@@ -1,5 +1,20 @@
 $kind: http-request
-description: ""
-url: ddddd
-method: GET
+description: "Envia la misma descripcion N veces (usar Collection Runner / newman -n) para verificar que Gemini clasifique de forma consistente el mismo incidente."
+url: http://localhost:5678/webhook/urbanpulse/report
+method: POST
+body:
+  type: json
+  content: '{ "description": "Hay un bache grande en la Av. Javier Prado que dificulta el paso de vehiculos", "latitude": -12.0464, "longitude": -77.0428 }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status 200", () => pm.response.to.have.status(200));
+      const current = pm.response.json().incident_type;
+      pm.test("Tiene incident_type", () => pm.expect(current).to.exist);
+      const previous = pm.environment.get("last_incident_type");
+      if (previous) {
+        pm.test(`Clasificacion consistente entre corridas (previa: ${previous}, actual: ${current})`, () => pm.expect(current).to.eql(previous));
+      }
+      pm.environment.set("last_incident_type", current);
+    language: text/javascript
 order: 4503146288336645
