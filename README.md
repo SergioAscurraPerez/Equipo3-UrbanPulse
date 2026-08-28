@@ -116,6 +116,8 @@ PostgreSQL.
 - `scripts/setup-structure.ps1` - Crea la estructura de carpetas en PowerShell.
 - `scripts/setup-structure.sh` - Crea la estructura de carpetas en Bash.
 - `scripts/verify-poc-deployment.js` - Verifica end-to-end la PoC desplegada (Frontend → n8n → PostgreSQL). Ver [sección dedicada](#verificación-end-to-end-de-la-poc-desplegada).
+- `scripts/db-setup.ps1` - Aplica migraciones y seeders de `database/` contra el contenedor `urbanpulse-db`.
+- `scripts/start-frontend.ps1` - Instala dependencias (si hace falta) y levanta las 3 apps del frontend (Module Federation): `mf-dashboard` (5175), `mf-mapa-urbano` (5174) y `src/frontend` (3000), cada una en su propia ventana de PowerShell.
 
 ## Notas de Sprint 0
 

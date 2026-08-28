@@ -1,7 +1,0 @@
-$kind: http-request
-url: http://localhost:5678/webhook/urbanpulse/report
-method: POST
-body:
-  type: json
-  content: '{ "description": "Bache", "latitude": "esto no es un numero", "longitude": -77.0428}'
-order: 4426074301354736

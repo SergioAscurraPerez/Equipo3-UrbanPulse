@@ -40,3 +40,6 @@ docker-compose.*.local.yml
 *.ntvs*
 *.njsproj
 *.sln
+postman/collections/*.html
+postman/collections/*resultado*.json
+postman/collections/*.postman_environment.json
