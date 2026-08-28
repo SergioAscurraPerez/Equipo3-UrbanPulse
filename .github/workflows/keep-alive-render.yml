@@ -1,0 +1,47 @@
+# ==============================================================================
+# Workflow: Keep Alive Render
+# Propósito: cumple doble función.
+#   1. Evitar que los servicios de Render (frontend/n8n) entren en estado de
+#      "sleep" por inactividad, manteniendo la PoC siempre accesible.
+#   2. Detectar tempranamente caídas reales del servicio (por ejemplo, el
+#      crash por falta de memoria ocurrido el 28 de agosto de 2026), ejecutando
+#      el mismo chequeo end-to-end (Frontend -> Webhook n8n -> PostgreSQL) que
+#      se usa para verificar la PoC desplegada.
+# ==============================================================================
+
+name: Keep Alive Render
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  verify-deployment:
+    name: Verificar despliegue de la PoC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Ejecutar verificación end-to-end de la PoC
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: node scripts/verify-poc-deployment.js
