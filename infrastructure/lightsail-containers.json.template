@@ -1,0 +1,29 @@
+{
+  "n8n": {
+    "image": "n8nio/n8n:2.34.6",
+    "ports": {
+      "5678": "HTTP"
+    },
+    "environment": {
+      "N8N_HOST": "urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com",
+      "N8N_PORT": "5678",
+      "N8N_PROTOCOL": "https",
+      "WEBHOOK_URL": "https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/",
+      "DB_TYPE": "postgresdb",
+      "DB_POSTGRESDB_HOST": "ep-fancy-mud-acgnd89n.sa-east-1.aws.neon.tech",
+      "DB_POSTGRESDB_PORT": "5432",
+      "DB_POSTGRESDB_DATABASE": "neondb",
+      "DB_POSTGRESDB_USER": "neondb_owner",
+      "DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED": "false",
+      "N8N_RUNNERS_ENABLED": "false",
+      "NODE_OPTIONS": "--max-old-space-size=300",
+      "N8N_DIAGNOSTICS_ENABLED": "false",
+      "EXECUTIONS_DATA_PRUNE": "true",
+      "EXECUTIONS_DATA_MAX_AGE": "336",
+      "EXECUTIONS_DATA_SAVE_ON_SUCCESS": "none",
+      "EXECUTIONS_DATA_SAVE_ON_ERROR": "all",
+      "DB_POSTGRESDB_PASSWORD": "__DB_POSTGRESDB_PASSWORD__",
+      "N8N_ENCRYPTION_KEY": "__N8N_ENCRYPTION_KEY__"
+    }
+  }
+}
