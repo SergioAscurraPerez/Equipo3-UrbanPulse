@@ -1,0 +1,66 @@
+# ==============================================================================
+# Workflow: Deploy n8n to AWS Lightsail
+# Propósito: n8n se migró de Render a un Container Service en AWS Lightsail
+#            (servicio: urbanpulse-n8n, región us-east-1). Este workflow genera
+#            la definición de contenedor a partir de
+#            infrastructure/lightsail-containers.json.template, sustituyendo
+#            los placeholders de valores sensibles, y crea un nuevo deployment
+#            en el Container Service cada vez que se hace push a main.
+#
+# Secrets requeridos en GitHub (Settings > Secrets and variables > Actions):
+#   - AWS_ACCESS_KEY_ID
+#   - AWS_SECRET_ACCESS_KEY
+#   - AWS_REGION
+#   - DB_POSTGRESDB_PASSWORD
+#   - N8N_ENCRYPTION_KEY
+# ==============================================================================
+
+name: Deploy n8n to AWS Lightsail
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Desplegar contenedor n8n en Lightsail
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Generar definición de contenedor con secretos
+        run: |
+          set -euo pipefail
+          # Escapa \, & y el delimitador | para que sed no interprete
+          # caracteres especiales si el secreto los contiene.
+          escaped_password=$(printf '%s' "${DB_POSTGRESDB_PASSWORD}" | sed -e 's/[\&|]/\\&/g')
+          escaped_key=$(printf '%s' "${N8N_ENCRYPTION_KEY}" | sed -e 's/[\&|]/\\&/g')
+          sed \
+            -e "s|__DB_POSTGRESDB_PASSWORD__|${escaped_password}|g" \
+            -e "s|__N8N_ENCRYPTION_KEY__|${escaped_key}|g" \
+            infrastructure/lightsail-containers.json.template > infrastructure/lightsail-containers.json
+          chmod 600 infrastructure/lightsail-containers.json
+        env:
+          DB_POSTGRESDB_PASSWORD: ${{ secrets.DB_POSTGRESDB_PASSWORD }}
+          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
+
+      - name: Crear deployment en Lightsail Container Service
+        run: |
+          aws lightsail create-container-service-deployment \
+            --service-name urbanpulse-n8n \
+            --containers file://infrastructure/lightsail-containers.json \
+            --public-endpoint '{"containerName":"n8n","containerPort":5678,"healthCheck":{}}'
+
+      - name: Limpiar archivo con secretos
+        if: always()
+        run: rm -f infrastructure/lightsail-containers.json

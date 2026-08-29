@@ -33,6 +33,10 @@ pg_data/
 docker-compose.override.yml
 docker-compose.*.local.yml
 
+# Lightsail: definición de contenedor generada con secretos sustituidos
+# (el .template sí se versiona)
+infrastructure/lightsail-containers.json
+
 # IDE / editor
 .vscode/
 .idea/
