@@ -6,8 +6,7 @@ const MapaUrbano = React.lazy(() => import('mf_mapa_urbano/MapaUrbano'));
 const Dashboard = React.lazy(() => import('mf_dashboard/Dashboard')); 
 const WEBHOOK_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:5678/webhook/urbanpulse/report"
-  : "https://urbanpulse-n8n.onrender.com/webhook/urbanpulse/report";
-
+  : "https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/report";
 function App() {
   const [activeTab, setActiveTab] = useState('reporte');
   const [status, setStatus] = useState({ text: '', type: '', hidden: true });

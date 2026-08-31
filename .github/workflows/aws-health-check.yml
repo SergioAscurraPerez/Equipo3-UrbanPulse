@@ -1,24 +1,19 @@
 # ==============================================================================
-# Workflow: Keep Alive Render
-# Propósito: cumple doble función.
-#   1. Evitar que los servicios de Render (frontend/n8n) entren en estado de
-#      "sleep" por inactividad, manteniendo la PoC siempre accesible.
-#   2. Detectar tempranamente caídas reales del servicio (por ejemplo, el
-#      crash por falta de memoria ocurrido el 28 de agosto de 2026), ejecutando
-#      el mismo chequeo end-to-end (Frontend -> Webhook n8n -> PostgreSQL) que
-#      se usa para verificar la PoC desplegada.
+# Workflow: Health Check AWS (E2E)
+# Propósito: Ejecutar una verificación end-to-end (Frontend -> Webhook n8n -> PostgreSQL)
+# para detectar caídas del servicio en la infraestructura de AWS Lightsail.
 # ==============================================================================
 
-name: Keep Alive Render
+name: Health Check AWS (E2E)
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0 12,0 * * *' # Ejecuta dos veces al día (12:00 y 00:00)
   workflow_dispatch:
 
 jobs:
   verify-deployment:
-    name: Verificar despliegue de la PoC
+    name: Verificar despliegue de la PoC en AWS
     runs-on: ubuntu-latest
 
     steps:
