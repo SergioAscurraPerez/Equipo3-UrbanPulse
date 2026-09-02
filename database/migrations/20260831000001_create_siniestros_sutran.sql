@@ -13,4 +13,6 @@ CREATE TABLE IF NOT EXISTS siniestros_sutran (
 );
 
 ALTER TABLE siniestros_sutran_demo
-  ADD CONSTRAINT uq_siniestro_sutran UNIQUE (fecha_siniestro, hora_siniestro, departamento, codigo_via, kilometro);
+ADD CONSTRAINT uq_siniestro_sutran UNIQUE (
+    fecha_siniestro, hora_siniestro, departamento, codigo_via, kilometro
+);
