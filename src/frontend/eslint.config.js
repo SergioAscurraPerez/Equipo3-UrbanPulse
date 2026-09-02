@@ -1,0 +1,43 @@
+import js from "@eslint/js";
+import reactPlugin from "eslint-plugin-react";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
+
+export default [
+  js.configs.recommended,
+  {
+    files: ["**/*.jsx", "**/*.js"],
+    plugins: {
+      react: reactPlugin,
+      "react-hooks": reactHooksPlugin,
+    },
+    languageOptions: {
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+        sourceType: "module",
+      },
+      globals: {
+        window: "readonly",
+        document: "readonly",
+        console: "readonly",
+        setTimeout: "readonly",
+        URL: "readonly",
+        fetch: "readonly",
+        FormData: "readonly",
+        navigator: "readonly",
+        FileReader: "readonly",
+        test: "readonly",
+        expect: "readonly"
+      }
+    },
+    settings: {
+      react: { version: "detect" }
+    },
+    rules: {
+      ...reactPlugin.configs.recommended.rules,
+      ...reactHooksPlugin.configs.recommended.rules,
+      "react/react-in-jsx-scope": "off", 
+      "react/prop-types": "off",
+      "no-unused-vars": "error"
+    }
+  }
+];
