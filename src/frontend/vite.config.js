@@ -5,7 +5,7 @@ import { federation } from '@module-federation/vite';
 
 const PROD_REMOTE_MF_DASHBOARD_URL = 'https://equipo3-urban-pulse-jti7.vercel.app/remoteEntry.js';
 const PROD_REMOTE_MF_MAPA_URBANO_URL = 'https://equipo3-urban-pulse-e9i8.vercel.app/remoteEntry.js';
-const PROD_REMOTE_MF_CHATBOT_URL = 'https://URL_DEL_CHATBOT_EN_VERCEL.vercel.app/remoteEntry.js'; 
+const PROD_REMOTE_MF_CHATBOT_URL = 'https://equipo3-urban-pulse-jbf3.vercel.app/remoteEntry.js';
 
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
