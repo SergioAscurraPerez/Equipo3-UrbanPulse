@@ -19,7 +19,7 @@ const MapaUrbano = ({ lat, lon }) => {
 
     map.current = mapInstance;
 
-    // 👇 LA SOLUCIÓN: Esta función se ejecuta cuando React desmonta el componente
+    //Esta función se ejecuta cuando React desmonta el componente
     return () => {
       mapInstance.remove(); // Apagamos el motor 3D del mapa
       map.current = null;   // Vaciamos la referencia
@@ -46,6 +46,39 @@ const MapaUrbano = ({ lat, lon }) => {
         .addTo(map.current);
     }
   }, [lat, lon]);
+
+  // Efecto 3: Cargar todos los reportes históricos para mostrarlos en el mapa
+  useEffect(() => {
+    const fetchReportesUrbanos = async () => {
+      try {
+        // Validación de seguridad de la variable de entorno
+        const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+        if (!webhookUrl) {
+          console.error("Variable VITE_N8N_WEBHOOK_URL no configurada en el entorno.");
+          return;
+        }
+
+        // Fetch corregido (sin el error de sintaxis)
+        const response = await fetch(webhookUrl);
+        const data = await response.json();
+        
+        // Aquí recorremos la data que viene de Postgres y ponemos marcadores masivos
+        data.forEach(reporte => {
+          if (reporte.latitude && reporte.longitude) {
+            new tt.Marker()
+              .setLngLat([parseFloat(reporte.longitude), parseFloat(reporte.latitude)])
+              .addTo(map.current);
+          }
+        });
+      } catch (error) {
+        console.error("Error cargando el mapa de calor/reportes:", error);
+      }
+    };
+
+    if (map.current) {
+      fetchReportesUrbanos();
+    }
+  }, []); // Array vacío para que el linter no lance la advertencia de refs
 
   return (
     <div ref={mapContainer} style={{ width: '100%', height: '100%' }}></div>

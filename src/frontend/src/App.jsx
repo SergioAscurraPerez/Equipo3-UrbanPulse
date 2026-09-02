@@ -1,248 +1,154 @@
 import React, { useState, Suspense } from 'react';
-import './App.css';
+import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity } from 'lucide-react';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 
+// Importaciones de los micro-fronteds
 const MapaUrbano = React.lazy(() => import('mf_mapa_urbano/MapaUrbano'));
 const Dashboard = React.lazy(() => import('mf_dashboard/Dashboard')); 
-const WEBHOOK_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:5678/webhook/urbanpulse/report"
-  : "https://urbanpulse-n8n.onrender.com/webhook/urbanpulse/report";
+const Chatbot = React.lazy(() => import('mf_chatbot/Chatbot'));
 
 function App() {
-  const [activeTab, setActiveTab] = useState('reporte');
-  const [status, setStatus] = useState({ text: '', type: '', hidden: true });
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [coords, setCoords] = useState({ lat: '', lon: '' });
+  // El chat es ahora la vista principal por defecto
+  const [activeTab, setActiveTab] = useState('chat');
 
-  // Función para obtener la geolocalización actual
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setStatus({ text: "Este navegador no soporta geolocalización.", type: "error", hidden: false });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude
-        });
-      },
-      () => {
-        setStatus({ text: "No se pudo obtener tu ubicación. Ingrésala manualmente.", type: "error", hidden: false });
-      }
-    );
-  };
-
-  // Convertir archivo a Base64 para enviarlo a Gemini
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = String(reader.result).split(",")[1] || "";
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Manejar el envío del formulario (¡AHORA CON FETCH REAL!)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setStatus({ hidden: true, text: "", type: "" });
-    setResult(null); 
-
-    try {
-      const formElements = e.target.elements;
-
-      // 1. Procesamos la imagen si el usuario subió una
-      let imageBase64 = null;
-      const imageFile = formElements.image.files[0];
-      if (imageFile) {
-        imageBase64 = await fileToBase64(imageFile);
-      }
-
-      // 2. Empaquetamos los datos exactos que espera el Backend
-      const payload = {
-        description: formElements.description.value,
-        latitude: coords.lat ? parseFloat(coords.lat) : null,
-        longitude: coords.lon ? parseFloat(coords.lon) : null,
-        image_base64: imageBase64 // Se envía a Gemini para visión artificial
-      };
-
-      console.log("📡 [Data Interaction] Payload listo para enviar:", payload);
-
-      // 3. El FETCH REAL (Conexión al Webhook de n8n)
-      const response = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      // Verificamos si el servidor respondió con error (ej. CORS o servidor apagado)
-      if (!response.ok) {
-        throw new Error(`Error en el servidor: ${response.status}`);
-      }
-
-      // 4. Atrapamos la respuesta clasificada por Gemini desde n8n
-      const data = await response.json();
-
-      setResult(data); 
-      setStatus({ hidden: false, text: "¡Reporte enviado y procesado con éxito!", type: "success" });
-      
-    } catch (error) {
-      console.error("❌ Error en la conexión:", error);
-      setStatus({ 
-        hidden: false, 
-        text: "Hubo un error al conectar con el servidor. Verifica que n8n esté corriendo y que CORS esté permitido.", 
-        type: "error" 
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Configuración del menú lateral
+  const menuItems = [
+    { id: 'inicio', label: 'INICIO', icon: Home },
+    { id: 'chat', label: 'CHAT', icon: MessageSquare },
+    { id: 'mapa', label: 'MAPA', icon: MapIcon },
+    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+    { id: 'ajustes', label: 'AJUSTES', icon: Settings },
+  ];
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1>UrbanPulse</h1>
-      <p className="subtitle">Reporta un incidente urbano en tu zona.</p>
+    // Fondo General (#0A0A0D) y Texto Principal (#F4F4F5)
+    <div className="flex h-screen overflow-hidden font-sans bg-[#0A0A0D] text-[#F4F4F5]">
+      
+      {/* SIDEBAR VERTICAL (#121218) */}
+      <aside className="w-64 flex flex-col bg-[#121218] border-r border-[#30303D] z-10 shadow-2xl">
+        
+        {/* LOGO URBANPULSE */}
+        <div className="h-20 flex items-center px-6 border-b border-[#30303D]">
+          <div className="p-2 bg-[#1B1B24] rounded-lg border border-[#30303D] mr-3 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+            <Activity className="text-[#A855F7]" size={24} />
+          </div>
+          <h1 className="text-xl font-bold tracking-widest">
+            URBAN<span className="text-[#A855F7]">PULSE</span>
+          </h1>
+        </div>
 
-      {/* Navegación simple entre vistas del shell */}
-      <nav className="tabs">
-        <button
-          type="button"
-          className={activeTab === 'reporte' ? 'tab active' : 'tab'}
-          onClick={() => setActiveTab('reporte')}
-        >
-          Reportar incidente
-        </button>
-        <button
-          type="button"
-          className={activeTab === 'dashboard' ? 'tab active' : 'tab'}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          Dashboard
-        </button>
-        <button
-          type="button"
-          className={activeTab === 'mapa' ? 'tab active' : 'tab'}
-          onClick={() => setActiveTab('mapa')}
-        >
-          Mapa
-        </button>
-      </nav>
-
-      {activeTab === 'reporte' && (
-      <>
-      {/* Dashboard de métricas */}
-      <div style={{ marginBottom: '2rem' }}>
-        <Suspense fallback={<div style={{padding: '1rem', textAlign: 'center', background: '#f8f9fa', borderRadius: '8px'}}>Cargando métricas en tiempo real...</div>}>
-          <Dashboard />
-        </Suspense>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'row', gap: '2rem', alignItems: 'flex-start' }}>
-
-        {/* LADO IZQUIERDO: Formulario */}
-        <div style={{ flex: '0 0 400px' }}>
-          <form id="report-form" onSubmit={handleSubmit}>
-            <label htmlFor="description">Descripción del incidente</label>
-            <textarea
-              id="description"
-              name="description"
-              rows="4"
-              placeholder="Ej: Hay un bache grande en la avenida principal..."
-              required
-            ></textarea>
-
-            <label htmlFor="image">Foto (opcional)</label>
-            <input id="image" name="image" type="file" accept="image/*" />
-
-            <fieldset className="coords">
-              <legend>Ubicación (opcional)</legend>
-              <div className="coords-row">
-                <div>
-                  <label htmlFor="latitude">Latitud</label>
-                  <input
-                    id="latitude"
-                    name="latitude"
-                    type="number"
-                    step="any"
-                    placeholder="-12.0464"
-                    value={coords.lat}
-                    onChange={(e) => setCoords({ ...coords, lat: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="longitude">Longitud</label>
-                  <input
-                    id="longitude"
-                    name="longitude"
-                    type="number"
-                    step="any"
-                    placeholder="-77.0428"
-                    value={coords.lon}
-                    onChange={(e) => setCoords({ ...coords, lon: e.target.value })}
-                  />
-                </div>
-              </div>
-              <button type="button" id="use-location" onClick={handleGetLocation}>
-                Usar mi ubicación actual
+        {/* NAVEGACIÓN */}
+        <nav className="flex-1 py-8 px-4 space-y-3 overflow-y-auto">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center px-4 py-3.5 rounded-xl transition-all duration-300 border group ${
+                  isActive 
+                    ? 'bg-[#1B1B24] text-[#A855F7] border-[#30303D] shadow-[inset_0_0_20px_rgba(168,85,247,0.05)]' 
+                    : 'bg-transparent text-[#A1A1AA] border-transparent hover:bg-[#1B1B24] hover:text-[#C084FC] hover:border-[#30303D]/50'
+                }`}
+              >
+                <Icon 
+                  size={20} 
+                  className={`mr-4 transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]' : 'group-hover:scale-110'}`} 
+                />
+                <span className="font-medium text-sm tracking-widest">{item.label}</span>
               </button>
-            </fieldset>
+            );
+          })}
+        </nav>
 
-            <button type="submit" id="submit-btn" disabled={loading}>
-              {loading ? "Enviando..." : "Enviar reporte"}
-            </button>
-          </form>
+        {/* PERFIL / USUARIO AL FONDO */}
+        <div className="p-4 border-t border-[#30303D] bg-[#121218]">
+          <div className="flex items-center px-4 py-3 rounded-xl bg-[#1B1B24] border border-[#30303D]">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center mr-3 bg-[#0A0A0D] border border-[#30303D] text-[#A855F7]">
+              <span className="text-xs font-bold tracking-wider">IA</span>
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-bold text-[#F4F4F5]">Operador Activo</span>
+              <span className="text-[10px] text-[#A855F7] flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7] animate-pulse"></span>
+                Sistema En Línea
+              </span>
+            </div>
+          </div>
         </div>
+      </aside>
 
-        {/* LADO DERECHO: Mapa */}
-        <div style={{ flex: '1', minWidth: '500px', height: '600px', backgroundColor: '#e9e9e9', borderRadius: '8px', overflow: 'hidden' }}>
-          <Suspense fallback={<div style={{padding: '2rem', textAlign:'center'}}>Cargando mapa de TomTom...</div>}>
-            <MapaUrbano lat={coords.lat} lon={coords.lon} />
-          </Suspense>
-        </div>
+      {/* ÁREA DE CONTENIDO PRINCIPAL */}
+      <main className="flex-1 relative overflow-hidden bg-[#0A0A0D]">
+        
+        {/* VISTA: INICIO */}
+        {activeTab === 'inicio' && (
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in">
+            <Activity size={80} className="text-[#A855F7] mb-8 opacity-20 drop-shadow-[0_0_30px_rgba(168,85,247,0.5)]" />
+            <h2 className="text-4xl font-bold mb-4 tracking-tight">Bienvenido a <span className="text-[#A855F7]">UrbanPulse</span></h2>
+            <p className="text-[#A1A1AA] max-w-lg text-lg leading-relaxed">
+              Sistema predictivo de incidentes urbanos impulsado por Inteligencia Artificial.
+            </p>
+          </div>
+        )}
 
-      </div>
+        {/* VISTA: CHAT (Ahora renderizado como Micro-Frontend Federado) */}
+        {activeTab === 'chat' && (
+          <div className="h-full w-full animate-fade-in">
+            <Suspense fallback={
+              <div className="flex flex-col items-center justify-center h-full text-[#A855F7]">
+                <MessageSquare size={40} className="mb-4 animate-pulse opacity-50" />
+                Inicializando Agente Conversacional...
+              </div>
+            }>
+              <Chatbot />
+            </Suspense>
+          </div>
+        )}
 
-      <section id="status" className={`status ${status.type}`} hidden={status.hidden}>
-        {status.text}
-      </section>
+        {/* VISTA: DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <div className="h-full overflow-y-auto p-8 animate-fade-in">
+            <Suspense fallback={
+              <div className="flex flex-col items-center justify-center h-full text-[#A855F7]">
+                <div className="animate-spin h-8 w-8 border-2 border-[#A855F7] border-t-transparent rounded-full mb-4"></div>
+                Conectando con el panel analítico...
+              </div>
+            }>
+              <Dashboard />
+            </Suspense>
+          </div>
+        )}
 
-      {result && (
-        <section id="result" className="result">
-          <p>Reporte procesado por Inteligencia Artificial.</p>
-          <dl>
-            <dt>Tipo de incidente</dt><dd>{result.incident_type ?? "-"}</dd>
-            <dt>Gravedad</dt><dd>{result.severity ?? "-"}</dd>
-            <dt>Prioridad</dt><dd>{result.priority ?? "-"}</dd>
-            <dt>Estado</dt><dd>{result.status ?? "Registrado"}</dd>
-            <dt>Mensaje</dt><dd>{result.mensaje_ciudadano ?? "-"}</dd>
-          </dl>
-        </section>
-      )}
-      </>
-      )}
+        {/* VISTA: MAPA */}
+        {activeTab === 'mapa' && (
+          <div className="h-full w-full p-6 animate-fade-in">
+            <div className="w-full h-full rounded-2xl overflow-hidden border border-[#30303D] bg-[#1B1B24] shadow-lg shadow-[#000000]/50 relative">
+              <Suspense fallback={
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-[#A855F7] bg-[#1B1B24]">
+                  <MapIcon size={40} className="mb-4 animate-pulse opacity-50" />
+                  Cargando topología...
+                </div>
+              }>
+                <MapaUrbano />
+              </Suspense>
+            </div>
+          </div>
+        )}
 
-      {activeTab === 'dashboard' && (
-        <Suspense fallback={<div style={{padding: '1rem', textAlign: 'center', background: '#f8f9fa', borderRadius: '8px'}}>Cargando métricas en tiempo real...</div>}>
-          <Dashboard />
-        </Suspense>
-      )}
+        {/* VISTA: AJUSTES */}
+        {activeTab === 'ajustes' && (
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in">
+            <Settings size={64} className="text-[#30303D] mb-6 animate-spin-slow" />
+            <h2 className="text-2xl font-bold mb-4 text-[#A1A1AA]">Ajustes de Telemetría</h2>
+            <p className="text-[#30303D] border border-[#30303D] px-4 py-2 rounded-lg">Módulo restringido en entorno actual</p>
+          </div>
+        )}
+      </main>
 
-      {activeTab === 'mapa' && (
-        <div style={{ height: '600px', borderRadius: '8px', overflow: 'hidden' }}>
-          <Suspense fallback={<div style={{padding: '2rem', textAlign:'center'}}>Cargando mapa de TomTom...</div>}>
-            <MapaUrbano lat={coords.lat} lon={coords.lon} />
-          </Suspense>
-        </div>
-      )}
-    </main>
+    </div>
   );
 }
 
