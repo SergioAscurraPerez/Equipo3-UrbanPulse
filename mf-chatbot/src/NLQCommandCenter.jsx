@@ -21,7 +21,7 @@ export default function NLQCommandCenter() {
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (file && file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file);
       setImagePreview(url);
     }
