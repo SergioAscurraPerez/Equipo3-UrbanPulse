@@ -13,15 +13,15 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS reports (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    description   TEXT NOT NULL,
-    image_url     TEXT,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    description TEXT NOT NULL,
+    image_url TEXT,
     incident_type TEXT,
-    severity      TEXT,
-    latitude      DOUBLE PRECISION,
-    longitude     DOUBLE PRECISION,
-    priority      INT,
-    status        TEXT NOT NULL DEFAULT 'pending',
-    embedding     VECTOR(384),
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    severity TEXT,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    priority INT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    embedding VECTOR(384),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

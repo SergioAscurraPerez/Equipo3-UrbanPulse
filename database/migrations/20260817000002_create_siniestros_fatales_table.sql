@@ -28,8 +28,11 @@ CREATE TABLE IF NOT EXISTS siniestros_fatales (
     existe_senal_horizontal TEXT,
     causa_factor_principal TEXT,
     causa_especifica TEXT,
-    geom GEOMETRY(Point, 4326),
+    geom GEOMETRY (POINT, 4326),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_siniestros_geom ON siniestros_fatales USING GIST (geom);
+CREATE INDEX IF NOT EXISTS idx_siniestros_geom
+ON siniestros_fatales USING gist (
+    geom
+);
