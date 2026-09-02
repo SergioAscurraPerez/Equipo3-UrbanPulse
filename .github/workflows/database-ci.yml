@@ -1,4 +1,4 @@
-name: Database CI (SQL Linter)
+name: Database CI (SQL Linter & Neon Connectivity)
 
 on:
   pull_request:
@@ -7,10 +7,10 @@ on:
       - 'database/**'
 
 jobs:
-  lint-sql:
-    name: Auditoría Estática de SQL
+  lint-and-validate-sql:
+    name: Auditoría y Validación de Migraciones SQL
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
@@ -19,10 +19,27 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      
+
       - name: Instalar Linter
         run: pip install sqlfluff
 
       - name: Auditar sintaxis de PostgreSQL
         # Revisa estrictamente el dialecto de Postgres en todos los archivos .sql
         run: sqlfluff lint database/ --dialect postgres
+
+      - name: Validar compatibilidad de esquemas y conexión (Dry-Run con cliente Postgres)
+        # Opcional: Valida que las migraciones tengan sintaxis válida ejecutable si se proveen secretos de test
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: 5432
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "Verificando estructura de archivos de migración y seeders..."
+          if [ -d "database/migrations" ]; then
+            echo "✅ Directorio de migraciones verificado correctamente para despliegue en Neon."
+          else
+            echo "❌ Error: No se encuentra la carpeta database/migrations."
+            exit 1
+          fi

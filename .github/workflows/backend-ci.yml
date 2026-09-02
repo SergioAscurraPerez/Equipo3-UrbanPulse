@@ -59,9 +59,7 @@ jobs:
         run: npm install -g newman
 
       - name: Ejecutar Colección de Pruebas QA
-        # Dispara los casos de prueba (Happy Path, Prompt Injection, etc.)
-        # Ajusta la ruta a tu archivo JSON/YAML de colección exportado
+        # Dispara los casos de prueba apuntando exactamente a los archivos JSON subidos al repositorio
         run: |
           echo "Disparando pruebas contra http://localhost:5678/webhook/urbanpulse/report..."
-          # Reemplaza 'ruta/a/tu/coleccion.json' con el archivo consolidado de tu colección QA
-          newman run "postman/collections/UrbanPulse - Pruebas QA/collection.json"
+          newman run "postman/collections/UrbanPulse - Pruebas QA.postman_collection.json" -e "postman/environments/urbanpulse-local.postman_environment.json"

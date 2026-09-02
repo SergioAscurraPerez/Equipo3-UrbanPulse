@@ -1,0 +1,24 @@
+name: AWS Lightsail CI Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/lightsail-containers.json.template'
+      - '.github/workflows/deploy-lightsail-n8n.yml'
+
+jobs:
+  validate-aws-config:
+    name: Validar Sintaxis JSON del Template de Lightsail
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Validar formato JSON del Template (ignorando placeholders)
+        run: |
+          echo "Validando estructura del template de AWS..."
+          # Reemplazamos temporalmente los placeholders por valores dummy para validar que el JSON sea estricto
+          sed 's/__DB_POSTGRESDB_PASSWORD__/dummy_pass/g; s/__N8N_ENCRYPTION_KEY__/dummy_key/g' infrastructure/lightsail-containers.json.template > test-container.json
+          node -e "JSON.parse(require('fs').readFileSync('test-container.json', 'utf8'))"
+          echo "✅ Sintaxis JSON del template de AWS validada correctamente."
