@@ -25,6 +25,7 @@ export default [
         FormData: "readonly",
         navigator: "readonly",
         FileReader: "readonly",
+        localStorage: "readonly",
         test: "readonly",
         expect: "readonly"
       }
