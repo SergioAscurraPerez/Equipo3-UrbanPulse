@@ -25,7 +25,20 @@ export default function LoginView({ onLogin }) {
         body: JSON.stringify({ username: username.trim(), password }),
       });
 
-      const data = await response.json();
+      // El webhook puede responder con cuerpo vacío si el workflow de n8n falla
+      // antes de llegar a un nodo "Respond": parseamos de forma defensiva para
+      // no romper con un "Unexpected end of JSON input".
+      const texto = await response.text();
+      let data = null;
+      try {
+        data = texto ? JSON.parse(texto) : null;
+      } catch {
+        data = null;
+      }
+
+      if (!data) {
+        throw new Error(`El servidor de autenticación respondió vacío (HTTP ${response.status}). Revisa que el workflow de n8n esté activo.`);
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Credenciales inválidas');

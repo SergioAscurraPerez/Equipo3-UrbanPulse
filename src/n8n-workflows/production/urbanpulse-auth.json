@@ -29,6 +29,7 @@
       "typeVersion": 2.7,
       "position": [224, 0],
       "id": "c4a2b001-1a2b-4c3d-9e4f-000000000002",
+      "alwaysOutputData": true,
       "name": "Buscar usuario",
       "credentials": {
         "postgres": {
@@ -40,7 +41,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const crypto = require('crypto');\nconst filas = $input.all();\nconst body = $('Webhook Login').item.json.body || {};\nconst password = body.password || '';\n\nif (filas.length === 0) {\n  return [{ json: { match: false, id: null, username: body.username || null, role: null } }];\n}\n\nconst usuario = filas[0].json;\nconst hashCalculado = crypto.scryptSync(password, usuario.password_salt, 64);\nconst hashAlmacenado = Buffer.from(usuario.password_hash, 'hex');\n\nlet match = false;\nif (hashCalculado.length === hashAlmacenado.length) {\n  match = crypto.timingSafeEqual(hashCalculado, hashAlmacenado);\n}\n\nreturn [{ json: { match, id: usuario.id, username: usuario.username, role: usuario.role } }];"
+        "jsCode": "const crypto = require('crypto');\nconst filas = $input.all();\nconst body = $('Webhook Login').item.json.body || {};\nconst password = body.password || '';\n\n// Con alwaysOutputData, si no hay coincidencia llega un item vacío en vez de 0 items\nconst usuario = filas.length > 0 ? filas[0].json : null;\nif (!usuario || !usuario.password_hash) {\n  return [{ json: { match: false, id: null, username: body.username || null, role: null } }];\n}\n\nconst hashCalculado = crypto.scryptSync(password, usuario.password_salt, 64);\nconst hashAlmacenado = Buffer.from(usuario.password_hash, 'hex');\n\nlet match = false;\nif (hashCalculado.length === hashAlmacenado.length) {\n  match = crypto.timingSafeEqual(hashCalculado, hashAlmacenado);\n}\n\nreturn [{ json: { match, id: usuario.id, username: usuario.username, role: usuario.role } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -214,6 +215,7 @@
       "typeVersion": 2.7,
       "position": [224, 700],
       "id": "c4a2b001-1a2b-4c3d-9e4f-000000000013",
+      "alwaysOutputData": true,
       "name": "Verificar username disponible",
       "credentials": {
         "postgres": {
@@ -225,7 +227,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const filas = $input.all();\nconst body = $('Webhook Registro').item.json.body || {};\nconst username = (body.username || '').trim();\nconst password = body.password || '';\n\nlet error = null;\nif (username.length < 3) {\n  error = 'El usuario debe tener al menos 3 caracteres.';\n} else if (password.length < 8) {\n  error = 'La contraseña debe tener al menos 8 caracteres.';\n} else if (filas.length > 0) {\n  error = 'Ese usuario ya existe.';\n}\n\nreturn [{ json: { valido: error === null, error, username, password } }];"
+        "jsCode": "const filas = $input.all();\nconst body = $('Webhook Registro').item.json.body || {};\nconst username = (body.username || '').trim();\nconst password = body.password || '';\n\n// Con alwaysOutputData, si el usuario está libre llega un item vacío en vez de 0 items\nconst yaExiste = filas.some((f) => f.json && f.json.id);\n\nlet error = null;\nif (username.length < 3) {\n  error = 'El usuario debe tener al menos 3 caracteres.';\n} else if (password.length < 8) {\n  error = 'La contraseña debe tener al menos 8 caracteres.';\n} else if (yaExiste) {\n  error = 'Ese usuario ya existe.';\n}\n\nreturn [{ json: { valido: error === null, error, username, password } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
