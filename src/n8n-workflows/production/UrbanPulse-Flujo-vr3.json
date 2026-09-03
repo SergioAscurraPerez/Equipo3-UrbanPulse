@@ -840,9 +840,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO reports (description, image_url, incident_type, severity, latitude, longitude, priority, mensaje_ciudadano, score_riesgo, imagen_consistente, observacion_imagen, embedding, reportes_similares, usuario_id)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector, $13, $14)\nRETURNING *;",
+        "query": "INSERT INTO reports (description, image_url, incident_type, severity, latitude, longitude, priority, mensaje_ciudadano, score_riesgo, imagen_consistente, observacion_imagen, embedding, reportes_similares, usuario_id, session_id)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector, $13, $14, $15)\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.description, $json.image_url, $json.incident_type, $json.severity, $json.latitude, $json.longitude, $json.priority, $json.mensaje_ciudadano, $json.score_riesgo, $json.imagen_consistente, $json.observacion_imagen, $json.embedding, $json.reportes_similares, $('Webhook1').item.json.body.usuario_id || null] }}"
+          "queryReplacement": "={{ [$json.description, $json.image_url, $json.incident_type, $json.severity, $json.latitude, $json.longitude, $json.priority, $json.mensaje_ciudadano, $json.score_riesgo, $json.imagen_consistente, $json.observacion_imagen, $json.embedding, $json.reportes_similares, $('Webhook1').item.json.body.usuario_id || null, $('Webhook1').item.json.body.session_id || null] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
