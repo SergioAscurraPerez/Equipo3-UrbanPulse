@@ -1,16 +1,133 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Camera, Bot, User, MapPin, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import './index.css';
-import { getSession, saveSession, clearSession } from './session';
+import { getSession, saveSession, clearSession, subscribeSession } from './session';
 import ChatAuthGate from './ChatAuthGate';
 
 // Fallback si TE_N8N_WEBHOOK_URL no está configurada en el entorno de despliegue,
 // igual que en mf-dashboard y mf-mapa-urbano.
 const N8N_CHAT_WEBHOOK_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat';
+const N8N_CHAT_HISTORY_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat-history';
+const N8N_CHAT_HISTORY_APPEND_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat-history-append';
 
 // Coordenadas de respaldo (Lima) si el navegador no da permiso de geolocalización o no la soporta
 const FALLBACK_LAT = -12.0464;
 const FALLBACK_LON = -77.0428;
+
+// Identificador de la conversación en curso. Antes era `sesion-${Date.now()}`,
+// que se repetía entre usuarios que abrían el chat en el mismo milisegundo y
+// además cambiaba al ir y volver de otra sección: el flujo de n8n guarda la
+// conversación por session_id, así que dos personas podían terminar escribiendo
+// sobre el mismo reporte a medio armar.
+// Va en sessionStorage (propio de cada pestaña del navegador) y lleva dentro el
+// id del usuario, de modo que cada pestaña y cada cuenta arman su reporte por
+// separado.
+const CLAVE_CONVERSACION = 'urbanpulse_chat_session_id';
+
+function nuevoIdConversacion(usuarioId) {
+  const aleatorio = (window.crypto && window.crypto.randomUUID)
+    ? window.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `sesion-${usuarioId}-${aleatorio}`;
+}
+
+function idConversacion(usuarioId) {
+  try {
+    const guardado = sessionStorage.getItem(`${CLAVE_CONVERSACION}:${usuarioId}`);
+    if (guardado) return guardado;
+  } catch {
+    // sessionStorage no disponible (modo privado, etc.)
+  }
+  return renovarConversacion(usuarioId);
+}
+
+// El flujo de n8n deja la conversación en estado 'completado' al registrar el
+// reporte y a partir de ahí responde "ya procesado", así que el siguiente
+// reporte necesita empezar una conversación nueva.
+function renovarConversacion(usuarioId) {
+  const nuevo = nuevoIdConversacion(usuarioId);
+  try {
+    sessionStorage.setItem(`${CLAVE_CONVERSACION}:${usuarioId}`, nuevo);
+  } catch {
+    // sessionStorage no disponible (modo privado, etc.)
+  }
+  return nuevo;
+}
+
+function olvidarConversacion(usuarioId) {
+  try {
+    sessionStorage.removeItem(`${CLAVE_CONVERSACION}:${usuarioId}`);
+  } catch {
+    // sessionStorage no disponible (modo privado, etc.)
+  }
+}
+
+// El workflow urbanpulse-chat-historial guarda cada turno del chat en
+// conversaciones.historial_mensajes, así que al volver a la sección (o recargar
+// la pestaña) se puede recuperar el hilo en vez de mostrar el chat vacío
+// mientras el bot sigue la conversación por su cuenta.
+function mensajesDesdeHistorial(fila) {
+  let historial = fila.historial_mensajes || [];
+  if (typeof historial === 'string') {
+    try {
+      historial = JSON.parse(historial);
+    } catch {
+      historial = [];
+    }
+  }
+  if (!Array.isArray(historial)) return [];
+
+  // La conversación guarda una sola foto (la última que mandó el ciudadano), así
+  // que se pinta en el último mensaje marcado con imagen.
+  const foto = fila.imagen_base64 ? `data:image/jpeg;base64,${fila.imagen_base64}` : null;
+  const ultimoConFoto = historial.reduce(
+    (indice, mensaje, i) => (mensaje.rol === 'ciudadano' && mensaje.imagen ? i : indice),
+    -1
+  );
+
+  return historial.map((mensaje, i) => ({
+    id: `historial-${i}`,
+    sender: mensaje.rol === 'ciudadano' ? 'ciudadano' : 'urbanbot',
+    text: mensaje.texto || '',
+    image: i === ultimoConFoto ? foto : null,
+  }));
+}
+
+async function pedirHistorialChat(sessionId, usuarioId) {
+  const base = import.meta.env.TE_N8N_CHAT_HISTORY_URL || N8N_CHAT_HISTORY_URL;
+  const respuesta = await fetch(
+    `${base}?session_id=${encodeURIComponent(sessionId)}&usuario_id=${encodeURIComponent(usuarioId)}`
+  );
+  if (!respuesta.ok) return [];
+
+  // Conversación nueva o ajena: el webhook responde vacío o sin fila.
+  const texto = await respuesta.text();
+  if (!texto) return [];
+  let datos = null;
+  try {
+    datos = JSON.parse(texto);
+  } catch {
+    return [];
+  }
+
+  const fila = Array.isArray(datos) ? datos[0] : datos;
+  return fila && fila.session_id ? mensajesDesdeHistorial(fila) : [];
+}
+
+// El historial es un extra: si el guardado falla, la conversación sigue su
+// curso, así que el error solo se registra en consola.
+function guardarTurnoEnHistorial(sessionId, usuarioId, mensajes) {
+  if (!sessionId || !usuarioId || mensajes.length === 0) return;
+
+  const url = import.meta.env.TE_N8N_CHAT_HISTORY_APPEND_URL || N8N_CHAT_HISTORY_APPEND_URL;
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId, usuario_id: usuarioId, mensajes }),
+  }).catch((error) => {
+    console.warn('No se pudo guardar el turno en el historial:', error);
+  });
+}
 
 function obtenerUbicacionActual() {
   return new Promise((resolve) => {
@@ -30,17 +147,59 @@ export default function NLQCommandCenter() {
   const [session, setSession] = useState(getSession);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
-  const [sessionId] = useState(() => `sesion-${Date.now()}`);
+  const [sessionId, setSessionId] = useState(() => {
+    const inicial = getSession();
+    return inicial ? idConversacion(inicial.id) : null;
+  });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+  const conversacionesCargadas = useRef(new Set());
+
+  // La sesión también se puede cerrar desde el host (sidebar o ajustes): el chat
+  // tiene que quedarse sin conversación en cuanto eso pase.
+  useEffect(() => subscribeSession((nueva) => {
+    setSession(nueva);
+    // idConversacion devuelve la que ya tenga esta pestaña, así que el chat no
+    // pierde el hilo si la sesión solo se renovó.
+    setSessionId(nueva ? idConversacion(nueva.id) : null);
+    if (!nueva) setMessages([]);
+  }), []);
+
+  // Al entrar a la sección el chat aparece vacío aunque la conversación siga
+  // abierta en el servidor: aquí se recupera el hilo que ya se había guardado.
+  useEffect(() => {
+    if (!session || !sessionId) return undefined;
+    if (conversacionesCargadas.current.has(sessionId)) return undefined;
+    conversacionesCargadas.current.add(sessionId);
+
+    let activo = true;
+    pedirHistorialChat(sessionId, session.id)
+      .then((delServidor) => {
+        // Si el ciudadano ya empezó a escribir mientras llegaba el hilo, manda
+        // lo que tiene en pantalla.
+        if (activo && delServidor.length) {
+          setMessages((previos) => (previos.length === 0 ? delServidor : previos));
+        }
+      })
+      .catch(() => {
+        // El historial es un extra: si no se puede cargar, el chat sigue.
+      });
+
+    return () => { activo = false; };
+  }, [session, sessionId]);
 
   const handleAuth = (authData) => {
     saveSession(authData);
     setSession(authData);
+    setSessionId(idConversacion(authData.id));
+    setMessages([]);
   };
 
   const handleLogout = () => {
+    if (session) olvidarConversacion(session.id);
+    setMessages([]);
+    setSessionId(null);
     clearSession();
     setSession(null);
   };
@@ -74,6 +233,9 @@ export default function NLQCommandCenter() {
     if (!textoLimpio && !imagePreview) return;
 
     const textoUsuario = textoLimpio.toLowerCase();
+    // Un reporte completado renueva la conversación más abajo: el turno hay que
+    // guardarlo en la que estaba abierta al enviarlo.
+    const conversacion = sessionId;
 
     // 1. Mostrar el mensaje del ciudadano en la interfaz
     const newUserMessage = {
@@ -99,7 +261,7 @@ export default function NLQCommandCenter() {
 
       // 4. Armar el Payload JSON exacto que espera n8n
       const payload = {
-        session_id: sessionId,
+        session_id: conversacion,
         usuario_id: session.id,
         mensaje: textoUsuario,
         imagen_base64: imagenBase64,
@@ -133,6 +295,13 @@ export default function NLQCommandCenter() {
         }]);
       }
 
+      // 7. Dejar el turno guardado para poder recuperar el hilo más tarde
+      const ahora = new Date().toISOString();
+      guardarTurnoEnHistorial(conversacion, session.id, [
+        { rol: 'ciudadano', texto: textoLimpio, imagen: !!imagenBase64, at: ahora },
+        ...(data.respuesta ? [{ rol: 'urbanbot', texto: data.respuesta, at: ahora }] : []),
+      ]);
+
       // Si n8n nos avisa que el flujo está 'completado', dibujamos también la tarjeta del ticket
       if (data.estado === 'completado' && data.tipo_incidente) {
         const newBotMessage = {
@@ -148,6 +317,14 @@ export default function NLQCommandCenter() {
           }
         };
         setMessages(prev => [...prev, newBotMessage]);
+      }
+
+      // Reporte cerrado: la siguiente descripción abre una conversación nueva
+      // en vez de chocar con la que ya se registró.
+      if (data.estado === 'completado') {
+        const siguiente = renovarConversacion(session.id);
+        conversacionesCargadas.current.add(siguiente);
+        setSessionId(siguiente);
       }
 
     } catch (error) {

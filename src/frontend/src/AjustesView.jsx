@@ -1,20 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, MapPin, Wifi, WifiOff, Loader2, LogOut, User, RefreshCw } from 'lucide-react';
+import { getSession, clearSession, subscribeSession } from './session';
 
 const N8N_BASE = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
-const SESION_CIUDADANO = 'urbanpulse_citizen_session';
-
-function leerSesionCiudadano() {
-  try {
-    const raw = localStorage.getItem(SESION_CIUDADANO);
-    if (!raw) return null;
-    const sesion = JSON.parse(raw);
-    if (!sesion.expires_at || new Date(sesion.expires_at).getTime() <= Date.now()) return null;
-    return sesion;
-  } catch {
-    return null;
-  }
-}
 
 function Seccion({ titulo, descripcion, children }) {
   return (
@@ -38,7 +26,7 @@ function Dato({ etiqueta, valor }) {
 }
 
 export default function AjustesView({ theme, onCambiarTema }) {
-  const [sesion, setSesion] = useState(leerSesionCiudadano);
+  const [sesion, setSesion] = useState(getSession);
   const [estadoN8n, setEstadoN8n] = useState('comprobando');
   const [permisoUbicacion, setPermisoUbicacion] = useState('desconocido');
 
@@ -58,6 +46,8 @@ export default function AjustesView({ theme, onCambiarTema }) {
 
     return () => { activo = false; };
   }, [comprobarN8n]);
+
+  useEffect(() => subscribeSession(setSesion), []);
 
   useEffect(() => {
     let activo = true;
@@ -82,12 +72,7 @@ export default function AjustesView({ theme, onCambiarTema }) {
   };
 
   const cerrarSesionCiudadano = () => {
-    try {
-      localStorage.removeItem(SESION_CIUDADANO);
-    } catch {
-      // localStorage no disponible
-    }
-    setSesion(null);
+    clearSession();
   };
 
   const etiquetaPermiso = {

@@ -36,7 +36,18 @@ function normalizarLista(datos) {
   return datos && datos.id ? [datos] : [];
 }
 
-export default function HistorialView() {
+// El webhook responde con cuerpo vacío cuando la consulta no devuelve filas.
+async function leerJson(respuesta) {
+  const texto = await respuesta.text();
+  if (!texto) return null;
+  try {
+    return JSON.parse(texto);
+  } catch {
+    return null;
+  }
+}
+
+export default function HistorialView({ session: sesionProp }) {
   const [reportes, setReportes] = useState([]);
   const [estado, setEstado] = useState('cargando');
   const [error, setError] = useState(null);
@@ -44,15 +55,20 @@ export default function HistorialView() {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [guardandoId, setGuardandoId] = useState(null);
 
+  // El host ya solo monta esta vista con sesión, pero la leemos de localStorage
+  // como respaldo para no pedir el historial sin saber de quién es.
+  const usuarioId = (sesionProp || getSession() || {}).id || null;
+
   const pedirHistorial = useCallback(async () => {
+    if (!usuarioId) throw new Error('Inicia sesión para ver tu historial de reportes.');
+
     const urlBase = import.meta.env.TE_N8N_REPORTS_HISTORY_URL || `${N8N_BASE}/urbanpulse/reports-history`;
-    const session = getSession();
-    const queryStr = (session && session.role !== 'operador' && session.id) ? `?usuario_id=${session.id}` : '';
-    const respuesta = await fetch(`${urlBase}${queryStr}`);
+    // El filtro por usuario lo aplica la consulta de n8n: sin usuario_id no
+    // devuelve nada, así que ningún reporte ajeno llega al navegador.
+    const respuesta = await fetch(`${urlBase}?usuario_id=${encodeURIComponent(usuarioId)}`);
     if (!respuesta.ok) throw new Error(`El servidor respondió ${respuesta.status}`);
-    const texto = await respuesta.text();
-    return normalizarLista(texto ? JSON.parse(texto) : []);
-  }, []);
+    return normalizarLista(await leerJson(respuesta));
+  }, [usuarioId]);
 
   useEffect(() => {
     let activo = true;
@@ -87,10 +103,17 @@ export default function HistorialView() {
       const respuesta = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: reporte.id, status: nuevoEstado }),
+        body: JSON.stringify({ id: reporte.id, status: nuevoEstado, usuario_id: usuarioId }),
       });
 
       if (!respuesta.ok) throw new Error(`El servidor respondió ${respuesta.status}`);
+
+      // La consulta solo actualiza el reporte si es de este usuario: sin fila
+      // de vuelta, el cambio no llegó a aplicarse.
+      const actualizado = await leerJson(respuesta);
+      if (!actualizado || (Array.isArray(actualizado) ? actualizado.length === 0 : !actualizado.id)) {
+        throw new Error('el reporte no es tuyo o ya no existe');
+      }
 
       setReportes((previos) =>
         previos.map((r) =>
@@ -133,7 +156,7 @@ export default function HistorialView() {
           <div>
             <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">Historial de reportes</h2>
             <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-              Todos los incidentes registrados, con o sin ubicación.
+              Los incidentes que tú registraste, con o sin ubicación.
             </p>
           </div>
           <button
@@ -194,7 +217,9 @@ export default function HistorialView() {
 
         {estado === 'listo' && filtrados.length === 0 && (
           <p className="text-center text-[var(--color-text-secondary)] py-20">
-            No hay reportes que coincidan con el filtro.
+            {reportes.length === 0
+              ? 'Todavía no has registrado ningún reporte. Cuenta un incidente en el chat y aparecerá aquí.'
+              : 'No hay reportes que coincidan con el filtro.'}
           </p>
         )}
 
