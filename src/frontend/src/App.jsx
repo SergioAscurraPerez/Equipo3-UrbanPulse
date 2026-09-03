@@ -1,7 +1,9 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity, Sun, Moon } from 'lucide-react';
+import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity, Sun, Moon, LogOut } from 'lucide-react';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 import { getInitialTheme, applyTheme } from './theme';
+import { getSession, saveSession, clearSession } from './session';
+import LoginView from './LoginView';
 
 // Importaciones de los micro-fronteds
 const MapaUrbano = React.lazy(() => import('mf_mapa_urbano/MapaUrbano'));
@@ -11,6 +13,7 @@ const Chatbot = React.lazy(() => import('mf_chatbot/Chatbot'));
 function App() {
   const [activeTab, setActiveTab] = useState('inicio');
   const [theme, setTheme] = useState(getInitialTheme);
+  const [session, setSession] = useState(getSession);
 
   useEffect(() => {
     applyTheme(theme);
@@ -19,6 +22,20 @@ function App() {
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
+
+  const handleLogin = (loginData) => {
+    saveSession(loginData);
+    setSession(loginData);
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+  };
+
+  if (!session) {
+    return <LoginView onLogin={handleLogin} />;
+  }
 
   // Configuración del menú lateral
   const menuItems = [
@@ -86,15 +103,24 @@ function App() {
 
           <div className="flex items-center px-4 py-3 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)]">
             <div className="w-9 h-9 rounded-full flex items-center justify-center mr-3 bg-[var(--color-bg-app)] border border-[var(--color-border)] text-[var(--color-accent)]">
-              <span className="text-xs font-bold tracking-wider">IA</span>
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-bold text-[var(--color-text-primary)]">Operador Activo</span>
-              <span className="text-[10px] text-[var(--color-accent)] flex items-center gap-1 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
-                Sistema En Línea
+              <span className="text-xs font-bold tracking-wider">
+                {session.username?.slice(0, 2).toUpperCase() || 'OP'}
               </span>
             </div>
+            <div className="flex flex-col text-left flex-1 min-w-0">
+              <span className="text-xs font-bold text-[var(--color-text-primary)] truncate">{session.username}</span>
+              <span className="text-[10px] text-[var(--color-accent)] flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
+                {session.role || 'Operador'}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-red-400 transition-colors"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </aside>
