@@ -25,10 +25,18 @@ const FALLBACK_LON = -77.0428;
 const CLAVE_CONVERSACION = 'urbanpulse_chat_session_id';
 
 function nuevoIdConversacion(usuarioId) {
-  const aleatorio = (window.crypto && window.crypto.randomUUID)
-    ? window.crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `sesion-${usuarioId}-${aleatorio}`;
+  return `sesion-${usuarioId}-${idAleatorioSeguro()}`;
+}
+
+// Math.random() no es apto para nada que identifique una sesión (CodeQL lo
+// marca como "insecure randomness"): con la semilla adivinada, dos pestañas
+// podrían acabar compartiendo o pisándose la misma conversación. getRandomValues
+// está disponible en cualquier navegador que ya necesitamos para el hash del
+// login (ver ChatAuthGate), así que no hace falta un respaldo más débil.
+function idAleatorioSeguro() {
+  if (window.crypto.randomUUID) return window.crypto.randomUUID();
+  const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function idConversacion(usuarioId) {
