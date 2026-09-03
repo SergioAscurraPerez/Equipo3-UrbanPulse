@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import './index.css';
 import { Activity, BarChart3, Clock, Gauge, AlertTriangle, ShieldAlert, Users, RefreshCw, Loader2 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
