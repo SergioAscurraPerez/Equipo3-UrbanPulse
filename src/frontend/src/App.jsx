@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity, Sun, Moon } from 'lucide-react';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 import { getInitialTheme, applyTheme } from './theme';
+import AjustesView from './AjustesView';
 
 // Importaciones de los micro-fronteds
 const MapaUrbano = React.lazy(() => import('mf_mapa_urbano/MapaUrbano'));
@@ -84,18 +85,6 @@ function App() {
             </span>
           </button>
 
-          <div className="flex items-center px-4 py-3 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)]">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center mr-3 bg-[var(--color-bg-app)] border border-[var(--color-border)] text-[var(--color-accent)]">
-              <span className="text-xs font-bold tracking-wider">IA</span>
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-bold text-[var(--color-text-primary)]">Operador Activo</span>
-              <span className="text-[10px] text-[var(--color-accent)] flex items-center gap-1 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
-                Sistema En Línea
-              </span>
-            </div>
-          </div>
         </div>
       </aside>
 
@@ -187,10 +176,8 @@ function App() {
 
         {/* VISTA: AJUSTES */}
         {activeTab === 'ajustes' && (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in">
-            <Settings size={64} className="text-[var(--color-border)] mb-6 animate-spin-slow" />
-            <h2 className="text-2xl font-bold mb-4 text-[var(--color-text-secondary)]">Ajustes de Telemetría</h2>
-            <p className="text-[var(--color-border)] border border-[var(--color-border)] px-4 py-2 rounded-lg">Módulo restringido en entorno actual</p>
+          <div className="h-full animate-fade-in">
+            <AjustesView theme={theme} onCambiarTema={setTheme} />
           </div>
         )}
       </main>
