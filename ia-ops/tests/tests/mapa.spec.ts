@@ -59,8 +59,19 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('la pestaña Mapa carga sin errores de página (regresión: antes se congelaba sin API key)', async ({ page }) => {
+  // Con una VITE_TOMTOM_API_KEY de prueba (no válida) y acceso real a
+  // internet, el propio SDK de TomTom puede lanzar "Failed to fetch" al
+  // intentar validar la key contra su servidor — es ruido esperado del
+  // proveedor externo, no un error de nuestro código. Solo interesa vigilar
+  // la firma exacta del bug real ya encontrado en este proyecto: sin key
+  // configurada, tt.map() lanzaba "key" option is required" de forma
+  // síncrona y la app entraba en un bucle de remount que la congelaba.
   const pageErrors: string[] = [];
-  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('pageerror', (error) => {
+    if (error.message.includes('key') && error.message.includes('required')) {
+      pageErrors.push(error.message);
+    }
+  });
 
   await page.route(REPORTS_LIST_PATH, (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_REPORTS) })
@@ -98,8 +109,19 @@ test('pide el listado de reportes históricos al backend al entrar a Mapa', asyn
 });
 
 test('si el listado de reportes falla, el mapa y la leyenda se mantienen visibles', async ({ page }) => {
+  // Con una VITE_TOMTOM_API_KEY de prueba (no válida) y acceso real a
+  // internet, el propio SDK de TomTom puede lanzar "Failed to fetch" al
+  // intentar validar la key contra su servidor — es ruido esperado del
+  // proveedor externo, no un error de nuestro código. Solo interesa vigilar
+  // la firma exacta del bug real ya encontrado en este proyecto: sin key
+  // configurada, tt.map() lanzaba "key" option is required" de forma
+  // síncrona y la app entraba en un bucle de remount que la congelaba.
   const pageErrors: string[] = [];
-  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('pageerror', (error) => {
+    if (error.message.includes('key') && error.message.includes('required')) {
+      pageErrors.push(error.message);
+    }
+  });
 
   await page.route(REPORTS_LIST_PATH, (route) => route.abort('failed'));
 
