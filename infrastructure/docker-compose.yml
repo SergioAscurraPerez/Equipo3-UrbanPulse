@@ -28,6 +28,7 @@ services:
       - N8N_CORS_ALLOWED_ORIGINS=http://localhost:3000
       - N8N_AUTH_SECRET=urbanpulse_dev_secret_local
       - NODE_FUNCTION_ALLOW_BUILTIN=crypto
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
     ports:
       - "5678:5678"
     depends_on:
