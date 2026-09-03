@@ -1,6 +1,7 @@
 -- Email como identificador de acceso.
--- A los usuarios existentes se les asigna un email temporal en vez de borrarlos,
--- porque reports.usuario_id los referencia; deberán registrarse con su email real.
+-- A los usuarios existentes se les asigna un email temporal en vez de
+-- borrarlos, porque reports.usuario_id los referencia. Deberán
+-- registrarse de nuevo con su email real.
 ALTER TABLE usuarios
 ADD COLUMN IF NOT EXISTS email TEXT;
 
