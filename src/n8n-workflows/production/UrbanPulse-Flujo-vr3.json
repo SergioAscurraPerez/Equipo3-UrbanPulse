@@ -183,9 +183,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO conversaciones (session_id, estado, updated_at)\nVALUES ($1, 'recolectando', now())\nON CONFLICT (session_id) DO UPDATE SET\n  estado = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN 'recolectando' ELSE conversaciones.estado END,\n  descripcion = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.descripcion END,\n  imagen_base64 = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.imagen_base64 END,\n  imagen_omitida = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN false ELSE conversaciones.imagen_omitida END,\n  latitude = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.latitude END,\n  longitude = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.longitude END\nRETURNING *;",
+        "query": "INSERT INTO conversaciones (session_id, usuario_id, estado, updated_at)\nVALUES ($1, $2::uuid, 'recolectando', now())\nON CONFLICT (session_id) DO UPDATE SET\n  -- La conversacion es de quien la abrio: si ya tiene dueno, no cambia\n  usuario_id = COALESCE(conversaciones.usuario_id, EXCLUDED.usuario_id),\n  estado = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN 'recolectando' ELSE conversaciones.estado END,\n  descripcion = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.descripcion END,\n  imagen_base64 = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.imagen_base64 END,\n  imagen_omitida = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN false ELSE conversaciones.imagen_omitida END,\n  latitude = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.latitude END,\n  longitude = CASE\n    WHEN conversaciones.estado = 'completado' AND conversaciones.updated_at < now() - interval '24 hours'\n    THEN NULL ELSE conversaciones.longitude END\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.body.session_id] }}"
+          "queryReplacement": "={{ [$json.body.session_id, /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test($json.body.usuario_id || '') ? $json.body.usuario_id : null] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -288,7 +288,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst body = $('Webhook1').item.json.body;\nconst sesion = $('Buscar o crear sesión').item.json;\n\n// Palabras que indican que el usuario no tiene/no quiere mandar foto\nconst textoMsg = (body.mensaje || '').toLowerCase().trim();\nconst dijoNoTengoFoto = /no tengo foto|sin foto|no hay foto|no tengo imagen/.test(textoMsg);\n\n// 1) Descripción: se actualiza si llega texto y aún no se había guardado,\n//    o si el usuario está corrigiendo (siempre se puede sobreescribir con texto nuevo\n//    mientras seguimos en estado \"recolectando\" y el texto no es solo un comando de omitir foto)\nlet descripcion = sesion.descripcion;\nif (textoMsg && !dijoNoTengoFoto) {\n  descripcion = body.mensaje;\n}\n\n// 2) Imagen: se guarda si llega, o se marca como \"omitida\" si el usuario lo indicó por texto\nlet imagen = sesion.imagen_base64;\nlet imagenOmitida = sesion.imagen_omitida || false;\nif (body.imagen_base64) {\n  imagen = body.imagen_base64;\n  imagenOmitida = false;\n}\nif (dijoNoTengoFoto) {\n  imagenOmitida = true;\n}\n\n// 3) Ubicación: se guarda si llega en el mensaje (botón de compartir ubicación del frontend)\nlet latitude = sesion.latitude;\nlet longitude = sesion.longitude;\nif (body.latitude != null && body.longitude != null) {\n  latitude = body.latitude;\n  longitude = body.longitude;\n}\n\n// Determinar qué falta\nconst faltaDescripcion = !descripcion;\nconst faltaImagen = !imagen && !imagenOmitida;\nconst faltaUbicacion = latitude == null || longitude == null;\nconst completo = !faltaDescripcion && !faltaImagen && !faltaUbicacion;\n\nreturn {\n  json: {\n    session_id: body.session_id,\n    descripcion,\n    imagen_base64: imagen,\n    imagen_omitida: imagenOmitida,\n    latitude,\n    longitude,\n    falta_descripcion: faltaDescripcion,\n    falta_imagen: faltaImagen,\n    falta_ubicacion: faltaUbicacion,\n    completo,\n    nuevo_estado: completo ? 'confirmando' : 'recolectando'\n  }\n};\n"
+        "jsCode": "\nconst body = $('Webhook1').item.json.body;\nconst sesion = $('Buscar o crear sesión').item.json;\n\n// Palabras que indican que el usuario no tiene/no quiere mandar foto\nconst textoMsg = (body.mensaje || '').toLowerCase().trim();\nconst dijoNoTengoFoto = /no tengo foto|sin foto|no hay foto|no tengo imagen/.test(textoMsg);\n\n// 1) Descripción: se actualiza si llega texto y aún no se había guardado,\n//    o si el usuario está corrigiendo (siempre se puede sobreescribir con texto nuevo\n//    mientras seguimos en estado \"recolectando\" y el texto no es solo un comando de omitir foto)\nlet descripcion = sesion.descripcion;\nif (textoMsg && !dijoNoTengoFoto) {\n  descripcion = body.mensaje;\n}\n\n// 2) Imagen: se guarda si llega, o se marca como \"omitida\" si el usuario lo indicó por texto\nlet imagen = sesion.imagen_base64;\nlet imagenOmitida = sesion.imagen_omitida || false;\nif (body.imagen_base64) {\n  imagen = body.imagen_base64;\n  imagenOmitida = false;\n}\nif (dijoNoTengoFoto) {\n  imagenOmitida = true;\n}\n\n// 3) Ubicación: se guarda si llega en el mensaje (botón de compartir ubicación del frontend)\nlet latitude = sesion.latitude;\nlet longitude = sesion.longitude;\nif (body.latitude != null && body.longitude != null) {\n  latitude = body.latitude;\n  longitude = body.longitude;\n}\n\n// Determinar qué falta\nconst faltaDescripcion = !descripcion;\nconst faltaImagen = !imagen && !imagenOmitida;\nconst faltaUbicacion = latitude == null || longitude == null;\nconst completo = !faltaDescripcion && !faltaImagen && !faltaUbicacion;\n\nreturn {\n  json: {\n    session_id: body.session_id,\n    usuario_id: body.usuario_id || null,\n    descripcion,\n    imagen_base64: imagen,\n    imagen_omitida: imagenOmitida,\n    latitude,\n    longitude,\n    falta_descripcion: faltaDescripcion,\n    falta_imagen: faltaImagen,\n    falta_ubicacion: faltaUbicacion,\n    completo,\n    nuevo_estado: completo ? 'confirmando' : 'recolectando'\n  }\n};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -302,9 +302,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE conversaciones\nSET descripcion = $1, imagen_base64 = $2, imagen_omitida = $3,\n    latitude = $4, longitude = $5, estado = $6, updated_at = now()\nWHERE session_id = $7\nRETURNING *;",
+        "query": "UPDATE conversaciones\nSET descripcion = $1, imagen_base64 = $2, imagen_omitida = $3,\n    latitude = $4, longitude = $5, estado = $6, updated_at = now()\nWHERE session_id = $7\n  AND (usuario_id IS NULL OR usuario_id = $8::uuid)\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.descripcion, $json.imagen_base64, $json.imagen_omitida, $json.latitude, $json.longitude, $json.nuevo_estado, $json.session_id] }}"
+          "queryReplacement": "={{ [$json.descripcion, $json.imagen_base64, $json.imagen_omitida, $json.latitude, $json.longitude, $json.nuevo_estado, $json.session_id, /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test($json.usuario_id || '') ? $json.usuario_id : null] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -480,9 +480,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE conversaciones\nSET descripcion = NULL, imagen_base64 = NULL, imagen_omitida = false,\n    latitude = NULL, longitude = NULL, estado = 'recolectando', updated_at = now()\nWHERE session_id = $1\nRETURNING *;",
+        "query": "UPDATE conversaciones\nSET descripcion = NULL, imagen_base64 = NULL, imagen_omitida = false,\n    latitude = NULL, longitude = NULL, estado = 'recolectando', updated_at = now()\nWHERE session_id = $1\n  AND (usuario_id IS NULL OR usuario_id = $2::uuid)\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$('Webhook1').item.json.body.session_id] }}"
+          "queryReplacement": "={{ [$('Webhook1').item.json.body.session_id, /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test($('Webhook1').item.json.body.usuario_id || '') ? $('Webhook1').item.json.body.usuario_id : null] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -840,9 +840,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO reports (description, image_url, incident_type, severity, latitude, longitude, priority, mensaje_ciudadano, score_riesgo, imagen_consistente, observacion_imagen, embedding, reportes_similares, usuario_id)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector, $13, $14)\nRETURNING *;",
+        "query": "INSERT INTO reports (description, image_url, incident_type, severity, latitude, longitude, priority, mensaje_ciudadano, score_riesgo, imagen_consistente, observacion_imagen, embedding, reportes_similares, usuario_id, session_id)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector, $13, $14, $15)\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.description, $json.image_url, $json.incident_type, $json.severity, $json.latitude, $json.longitude, $json.priority, $json.mensaje_ciudadano, $json.score_riesgo, $json.imagen_consistente, $json.observacion_imagen, $json.embedding, $json.reportes_similares, $('Webhook1').item.json.body.usuario_id || null] }}"
+          "queryReplacement": "={{ [$json.description, $json.image_url, $json.incident_type, $json.severity, $json.latitude, $json.longitude, $json.priority, $json.mensaje_ciudadano, $json.score_riesgo, $json.imagen_consistente, $json.observacion_imagen, $json.embedding, $json.reportes_similares, $('Webhook1').item.json.body.usuario_id || null, $('Webhook1').item.json.body.session_id || null] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",

@@ -252,8 +252,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT r.id, r.description, r.incident_type, r.severity, r.priority, r.status,\n       r.latitude, r.longitude, r.created_at, r.resolved_at,\n       (r.image_url IS NOT NULL) AS tiene_imagen,\n       u.email AS reportado_por\nFROM reports AS r\nLEFT JOIN usuarios AS u ON u.id = r.usuario_id\nORDER BY r.created_at DESC\nLIMIT 200;",
-        "options": {}
+        "query": "-- El historial es privado: solo devuelve los reportes del usuario que lo pide.\n-- El operador, que atiende los de toda la ciudad, sigue viendo todos.\n-- Sin un usuario_id valido no sale ninguna fila, asi que el historial queda\n-- vacio para quien no ha iniciado sesion.\nWITH solicitante AS (\n  SELECT id, role FROM usuarios WHERE id = $1::uuid\n)\nSELECT r.id, r.description, r.incident_type, r.severity, r.priority, r.status,\n       r.latitude, r.longitude, r.created_at, r.resolved_at,\n       (r.image_url IS NOT NULL) AS tiene_imagen,\n       u.email AS reportado_por\nFROM reports AS r\nLEFT JOIN usuarios AS u ON u.id = r.usuario_id\nWHERE r.usuario_id = (SELECT id FROM solicitante)\n   OR (SELECT role FROM solicitante) = 'operador'\nORDER BY r.created_at DESC\nLIMIT 200;",
+        "options": {
+          "queryReplacement": "={{ [ /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test($json.query.usuario_id || '') ? $json.query.usuario_id : null ] }}"
+        }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
@@ -326,9 +328,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE reports\nSET status = CASE WHEN $2 = 'resuelto' THEN 'resuelto' ELSE 'pending' END,\n    resolved_at = CASE WHEN $2 = 'resuelto' THEN now() ELSE NULL END\nWHERE id = $1\nRETURNING id, status, resolved_at;",
+        "query": "-- Cada quien resuelve sus propios reportes; el operador, cualquiera.\n-- Si el reporte no es suyo no se actualiza ninguna fila y la respuesta vuelve\n-- vacia, que es como el frontend detecta que el cambio no se aplico.\nUPDATE reports AS r\nSET status = CASE WHEN $2 = 'resuelto' THEN 'resuelto' ELSE 'pending' END,\n    resolved_at = CASE WHEN $2 = 'resuelto' THEN now() ELSE NULL END\nWHERE r.id = $1::uuid\n  AND (r.usuario_id = $3::uuid\n       OR EXISTS (SELECT 1 FROM usuarios AS o\n                  WHERE o.id = $3::uuid AND o.role = 'operador'))\nRETURNING r.id, r.status, r.resolved_at;",
         "options": {
-          "queryReplacement": "={{ [$json.body.id || null, $json.body.status || 'pending'] }}"
+          "queryReplacement": "={{ [ /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test($json.body.id || '') ? $json.body.id : null, $json.body.status || 'pending', /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test($json.body.usuario_id || '') ? $json.body.usuario_id : null ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",

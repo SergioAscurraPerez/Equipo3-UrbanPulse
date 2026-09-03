@@ -1,7 +1,9 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity, Sun, Moon } from 'lucide-react';
+import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity, Sun, Moon, History, User, LogOut } from 'lucide-react';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 import { getInitialTheme, applyTheme } from './theme';
+import { getSession, clearSession, subscribeSession } from './session';
+import HistorialView from './HistorialView';
 import AjustesView from './AjustesView';
 
 // Importaciones de los micro-fronteds
@@ -12,21 +14,32 @@ const Chatbot = React.lazy(() => import('mf_chatbot/Chatbot'));
 function App() {
   const [activeTab, setActiveTab] = useState('inicio');
   const [theme, setTheme] = useState(getInitialTheme);
+  const [session, setSession] = useState(getSession);
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
+  // El chat es quien abre y cierra la sesión; el host se entera por el evento
+  // compartido en session.js.
+  useEffect(() => subscribeSession(setSession), []);
+
+  // El historial es privado: si la sesión caduca o se cierra estando en esa
+  // vista, no puede quedarse mostrando los reportes de quien acaba de salir.
+  const vistaActiva = (!session && activeTab === 'historial') ? 'inicio' : activeTab;
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Configuración del menú lateral
+  // Configuración del menú lateral. Mapa y dashboard son públicos; el historial
+  // solo aparece con sesión iniciada porque muestra los reportes propios.
   const menuItems = [
     { id: 'inicio', label: 'INICIO', icon: Home },
     { id: 'chat', label: 'CHAT', icon: MessageSquare },
     { id: 'mapa', label: 'MAPA', icon: MapIcon },
     { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+    ...(session ? [{ id: 'historial', label: 'HISTORIAL', icon: History }] : []),
     { id: 'ajustes', label: 'AJUSTES', icon: Settings },
   ];
 
@@ -50,7 +63,7 @@ function App() {
         <nav className="flex-1 py-8 px-4 space-y-3 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = vistaActiva === item.id;
             
             return (
               <button
@@ -74,6 +87,35 @@ function App() {
 
         {/* PERFIL / USUARIO AL FONDO */}
         <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-panel)] space-y-3">
+          {session ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)]">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[var(--color-bg-app)] border border-[var(--color-border)] text-[var(--color-accent)] shrink-0">
+                <User size={15} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[var(--color-text-primary)] truncate">
+                  {session.email || session.username}
+                </p>
+                <p className="text-[10px] text-[var(--color-text-secondary)]">{session.role || 'ciudadano'}</p>
+              </div>
+              <button
+                onClick={() => clearSession()}
+                title="Cerrar sesión"
+                className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-red-400 transition-colors shrink-0"
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setActiveTab('chat')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent-light)] transition-colors"
+            >
+              <User size={16} />
+              <span className="text-xs font-medium tracking-wide">Iniciar sesión</span>
+            </button>
+          )}
+
           <button
             onClick={toggleTheme}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent-light)] hover:border-[var(--color-border)]/50 transition-colors"
@@ -92,7 +134,7 @@ function App() {
       <main className="flex-1 relative overflow-hidden bg-[var(--color-bg-app)]">
         
         {/* VISTA: INICIO (Landing) */}
-        {activeTab === 'inicio' && (
+        {vistaActiva === 'inicio' && (
           <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in overflow-y-auto">
             <div className="p-4 bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] mb-6 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
               <Activity size={48} className="text-[var(--color-accent)]" />
@@ -131,7 +173,7 @@ function App() {
         )}
 
         {/* VISTA: CHAT (Ahora renderizado como Micro-Frontend Federado) */}
-        {activeTab === 'chat' && (
+        {vistaActiva === 'chat' && (
           <div className="h-full w-full animate-fade-in">
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
@@ -145,7 +187,7 @@ function App() {
         )}
 
         {/* VISTA: DASHBOARD */}
-        {activeTab === 'dashboard' && (
+        {vistaActiva === 'dashboard' && (
           <div className="h-full overflow-y-auto p-8 animate-fade-in">
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
@@ -159,7 +201,7 @@ function App() {
         )}
 
         {/* VISTA: MAPA */}
-        {activeTab === 'mapa' && (
+        {vistaActiva === 'mapa' && (
           <div className="h-full w-full p-6 animate-fade-in">
             <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg shadow-[#000000]/50 relative">
               <Suspense fallback={
@@ -174,8 +216,15 @@ function App() {
           </div>
         )}
 
+        {/* VISTA: HISTORIAL */}
+        {vistaActiva === 'historial' && (
+          <div className="h-full animate-fade-in">
+            <HistorialView session={session} />
+          </div>
+        )}
+
         {/* VISTA: AJUSTES */}
-        {activeTab === 'ajustes' && (
+        {vistaActiva === 'ajustes' && (
           <div className="h-full animate-fade-in">
             <AjustesView theme={theme} onCambiarTema={setTheme} />
           </div>
