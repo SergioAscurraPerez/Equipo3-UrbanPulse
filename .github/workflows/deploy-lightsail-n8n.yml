@@ -23,6 +23,13 @@ on:
     branches:
       - main
 
+# Lightsail solo admite un deployment a la vez por servicio: si dos merges a main
+# ocurren seguidos, el segundo falla con "deployment N is in progress". Encolamos
+# los runs en vez de ejecutarlos en paralelo.
+concurrency:
+  group: lightsail-n8n-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Desplegar contenedor n8n en Lightsail
@@ -57,6 +64,28 @@ jobs:
           DB_POSTGRESDB_PASSWORD: ${{ secrets.DB_POSTGRESDB_PASSWORD }}
           N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
           N8N_AUTH_SECRET: ${{ secrets.N8N_AUTH_SECRET }}
+
+      - name: Esperar a que el servicio acepte un nuevo deployment
+        run: |
+          set -euo pipefail
+          # El job de GitHub termina en segundos, pero un deployment de Lightsail
+          # tarda minutos. Si el servicio sigue en DEPLOYING/UPDATING, la API
+          # rechaza el nuevo deployment, así que esperamos a que quede estable.
+          for intento in $(seq 1 40); do
+            estado=$(aws lightsail get-container-services \
+              --service-name urbanpulse-n8n \
+              --query 'containerServices[0].state' --output text)
+            echo "Intento ${intento}: estado del servicio = ${estado}"
+            case "${estado}" in
+              RUNNING|READY|DISABLED)
+                echo "El servicio acepta un nuevo deployment."
+                exit 0
+                ;;
+            esac
+            sleep 15
+          done
+          echo "::error::El servicio sigue ocupado tras 10 minutos de espera."
+          exit 1
 
       - name: Crear deployment en Lightsail Container Service
         run: |

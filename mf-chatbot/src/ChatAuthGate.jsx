@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Activity, Lock, User, Loader2, AlertTriangle } from 'lucide-react';
+import { Bot, Lock, User, Loader2, AlertTriangle } from 'lucide-react';
 
-// Fallback si TE_N8N_AUTH_LOGIN_URL no está configurada en el entorno de despliegue
+// Fallback si las variables de entorno no están configuradas en el despliegue
 const N8N_AUTH_LOGIN_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/auth/login';
+const N8N_AUTH_REGISTER_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/auth/register';
 
-export default function LoginView({ onLogin }) {
+export default function ChatAuthGate({ onAuth }) {
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle');
@@ -18,7 +20,11 @@ export default function LoginView({ onLogin }) {
     setError(null);
 
     try {
-      const webhookUrl = import.meta.env.TE_N8N_AUTH_LOGIN_URL || N8N_AUTH_LOGIN_URL;
+      const isRegister = mode === 'register';
+      const webhookUrl = isRegister
+        ? (import.meta.env.TE_N8N_AUTH_REGISTER_URL || N8N_AUTH_REGISTER_URL)
+        : (import.meta.env.TE_N8N_AUTH_LOGIN_URL || N8N_AUTH_LOGIN_URL);
+
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -26,8 +32,7 @@ export default function LoginView({ onLogin }) {
       });
 
       // El webhook puede responder con cuerpo vacío si el workflow de n8n falla
-      // antes de llegar a un nodo "Respond": parseamos de forma defensiva para
-      // no romper con un "Unexpected end of JSON input".
+      // antes de llegar a un nodo "Respond": parseamos de forma defensiva.
       const texto = await response.text();
       let data = null;
       try {
@@ -41,10 +46,10 @@ export default function LoginView({ onLogin }) {
       }
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Credenciales inválidas');
+        throw new Error(data.error || (isRegister ? 'No se pudo crear la cuenta.' : 'Credenciales inválidas'));
       }
 
-      onLogin(data);
+      onAuth(data);
     } catch (err) {
       setError(err.message || 'No se pudo conectar con el servidor de autenticación.');
       setStatus('error');
@@ -52,16 +57,35 @@ export default function LoginView({ onLogin }) {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-[var(--color-bg-app)] text-[var(--color-text-primary)] px-4">
+    <div className="flex flex-col h-full items-center justify-center bg-[var(--color-bg-app)] text-[var(--color-text-primary)] px-4">
       <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6">
           <div className="p-3 bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] mb-4 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-            <Activity size={32} className="text-[var(--color-accent)]" />
+            <Bot size={32} className="text-[var(--color-accent)]" />
           </div>
-          <h1 className="text-2xl font-bold tracking-widest">
-            URBAN<span className="text-[var(--color-accent)]">PULSE</span>
+          <h1 className="text-xl font-bold text-center">
+            Para reportar un incidente, primero {mode === 'login' ? 'inicia sesión' : 'regístrate'}
           </h1>
-          <p className="text-[var(--color-text-secondary)] text-sm mt-1">Acceso de operadores</p>
+          <p className="text-[var(--color-text-secondary)] text-sm mt-1 text-center">
+            Así podemos asociar tu reporte a tu cuenta y darte seguimiento.
+          </p>
+        </div>
+
+        <div className="flex mb-4 bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-1">
+          <button
+            type="button"
+            onClick={() => { setMode('login'); setError(null); }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'login' ? 'bg-[var(--color-accent)] text-white' : 'text-[var(--color-text-secondary)]'}`}
+          >
+            Iniciar sesión
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('register'); setError(null); }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'register' ? 'bg-[var(--color-accent)] text-white' : 'text-[var(--color-text-secondary)]'}`}
+          >
+            Registrarse
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6">
@@ -85,7 +109,7 @@ export default function LoginView({ onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Contraseña"
-              autoComplete="current-password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               disabled={status === 'loading'}
               className="w-full bg-[var(--color-bg-app)] text-[var(--color-text-primary)] pl-10 pr-4 py-3 rounded-xl border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all"
             />
@@ -103,7 +127,9 @@ export default function LoginView({ onLogin }) {
             disabled={!username.trim() || !password || status === 'loading'}
             className="w-full py-3 bg-[var(--color-accent)] text-white font-bold rounded-xl hover:bg-[var(--color-accent-light)] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {status === 'loading' ? <Loader2 size={18} className="animate-spin" /> : 'Iniciar sesión'}
+            {status === 'loading'
+              ? <Loader2 size={18} className="animate-spin" />
+              : (mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta')}
           </button>
         </form>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import './index.css';
 import { Activity, BarChart3, Clock, Gauge, AlertTriangle, ShieldAlert, Users, RefreshCw, Loader2 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -59,30 +60,57 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
+  // Solo hace la petición: no toca el estado, para poder llamarla desde el
+  // efecto sin disparar setState de forma síncrona (react-hooks/set-state-in-effect).
+  const pedirKpis = useCallback(async () => {
+    const webhookUrl = import.meta.env.TE_N8N_DASHBOARD_KPIS_URL || N8N_DASHBOARD_KPIS_URL;
+    const response = await fetch(webhookUrl);
+
+    if (!response.ok) {
+      throw new Error(`Error de conexión con n8n: ${response.status}`);
+    }
+
+    return response.json();
+  }, []);
+
+  const manejarError = useCallback((err) => {
+    console.error('Error cargando KPIs del dashboard:', err);
+    setError(err.message || 'No se pudo conectar con el servidor de métricas.');
+    setStatus('error');
+  }, []);
+
+  // Carga inicial: el estado se actualiza dentro de los callbacks de la promesa,
+  // nunca de forma síncrona en el cuerpo del efecto.
+  useEffect(() => {
+    let activo = true;
+
+    pedirKpis()
+      .then((json) => {
+        if (!activo) return;
+        setData(json);
+        setStatus('success');
+      })
+      .catch((err) => {
+        if (!activo) return;
+        manejarError(err);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [pedirKpis, manejarError]);
+
+  // Recarga manual desde el botón "Actualizar"
   const cargarKpis = useCallback(async () => {
     setStatus('loading');
     setError(null);
     try {
-      const webhookUrl = import.meta.env.TE_N8N_DASHBOARD_KPIS_URL || N8N_DASHBOARD_KPIS_URL;
-      const response = await fetch(webhookUrl);
-
-      if (!response.ok) {
-        throw new Error(`Error de conexión con n8n: ${response.status}`);
-      }
-
-      const json = await response.json();
-      setData(json);
+      setData(await pedirKpis());
       setStatus('success');
     } catch (err) {
-      console.error('Error cargando KPIs del dashboard:', err);
-      setError(err.message || 'No se pudo conectar con el servidor de métricas.');
-      setStatus('error');
+      manejarError(err);
     }
-  }, []);
-
-  useEffect(() => {
-    cargarKpis();
-  }, [cargarKpis]);
+  }, [pedirKpis, manejarError]);
 
   const kpis = data?.kpis;
   const charts = data?.charts;

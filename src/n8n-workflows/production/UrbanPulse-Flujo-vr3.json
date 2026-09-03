@@ -655,7 +655,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const respuestaTexto = $json.candidates[0].content.parts[0].text;\nconst clasificacion = JSON.parse(respuestaTexto);\nconst conv = $('Preparar datos confirmados').item.json;\nconst { score_riesgo } = $('Calcular score de riesgo').item.json;\n\nreturn {\n  json: {\n    description: conv.descripcion,\n    image_url: null,\n    incident_type: clasificacion.incident_type,\n    severity: clasificacion.severity,\n    priority: clasificacion.priority,\n    mensaje_ciudadano: clasificacion.mensaje_ciudadano,\n    latitude: conv.latitude,\n    longitude: conv.longitude,\n    score_riesgo,\n    imagen_consistente: clasificacion.imagen_consistente,\n    observacion_imagen: clasificacion.observacion_imagen\n  }\n};"
+        "jsCode": "const respuestaTexto = $json.candidates[0].content.parts[0].text;\nconst clasificacion = JSON.parse(respuestaTexto);\nconst conv = $('Preparar datos confirmados').item.json;\nconst { score_riesgo } = $('Calcular score de riesgo').item.json;\n\nreturn {\n  json: {\n    description: conv.descripcion,\n    image_url: conv.imagen_base64 ? ('data:image/jpeg;base64,' + conv.imagen_base64) : null,\n    incident_type: clasificacion.incident_type,\n    severity: clasificacion.severity,\n    priority: clasificacion.priority,\n    mensaje_ciudadano: clasificacion.mensaje_ciudadano,\n    latitude: conv.latitude,\n    longitude: conv.longitude,\n    score_riesgo,\n    imagen_consistente: clasificacion.imagen_consistente,\n    observacion_imagen: clasificacion.observacion_imagen\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -708,7 +708,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const respuestaTexto = $json.choices[0].message.content;\nconst clasificacion = JSON.parse(respuestaTexto);\nconst conv = $('Preparar datos confirmados').item.json;\nconst { score_riesgo } = $('Calcular score de riesgo').item.json;\n\nreturn {\n  json: {\n    description: conv.descripcion,\n    image_url: null,\n    incident_type: clasificacion.incident_type,\n    severity: clasificacion.severity,\n    priority: clasificacion.priority,\n    mensaje_ciudadano: clasificacion.mensaje_ciudadano,\n    latitude: conv.latitude,\n    longitude: conv.longitude,\n    score_riesgo,\n    imagen_consistente: clasificacion.imagen_consistente,\n    observacion_imagen: clasificacion.observacion_imagen\n  }\n};"
+        "jsCode": "const respuestaTexto = $json.choices[0].message.content;\nconst clasificacion = JSON.parse(respuestaTexto);\nconst conv = $('Preparar datos confirmados').item.json;\nconst { score_riesgo } = $('Calcular score de riesgo').item.json;\n\nreturn {\n  json: {\n    description: conv.descripcion,\n    image_url: conv.imagen_base64 ? ('data:image/jpeg;base64,' + conv.imagen_base64) : null,\n    incident_type: clasificacion.incident_type,\n    severity: clasificacion.severity,\n    priority: clasificacion.priority,\n    mensaje_ciudadano: clasificacion.mensaje_ciudadano,\n    latitude: conv.latitude,\n    longitude: conv.longitude,\n    score_riesgo,\n    imagen_consistente: clasificacion.imagen_consistente,\n    observacion_imagen: clasificacion.observacion_imagen\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -840,9 +840,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO reports (description, image_url, incident_type, severity, latitude, longitude, priority, mensaje_ciudadano, score_riesgo, imagen_consistente, observacion_imagen, embedding, reportes_similares)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector, $13)\nRETURNING *;",
+        "query": "INSERT INTO reports (description, image_url, incident_type, severity, latitude, longitude, priority, mensaje_ciudadano, score_riesgo, imagen_consistente, observacion_imagen, embedding, reportes_similares, usuario_id)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector, $13, $14)\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.description, $json.image_url, $json.incident_type, $json.severity, $json.latitude, $json.longitude, $json.priority, $json.mensaje_ciudadano, $json.score_riesgo, $json.imagen_consistente, $json.observacion_imagen, $json.embedding, $json.reportes_similares] }}"
+          "queryReplacement": "={{ [$json.description, $json.image_url, $json.incident_type, $json.severity, $json.latitude, $json.longitude, $json.priority, $json.mensaje_ciudadano, $json.score_riesgo, $json.imagen_consistente, $json.observacion_imagen, $json.embedding, $json.reportes_similares, $('Webhook1').item.json.body.usuario_id || null] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
