@@ -1,7 +1,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity, Sun, Moon } from 'lucide-react';
+import { Home, MessageSquare, Map as MapIcon, LayoutDashboard, Settings, Activity, Sun, Moon, History } from 'lucide-react';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 import { getInitialTheme, applyTheme } from './theme';
+import HistorialView from './HistorialView';
 import AjustesView from './AjustesView';
 
 // Importaciones de los micro-fronteds
@@ -27,6 +28,7 @@ function App() {
     { id: 'chat', label: 'CHAT', icon: MessageSquare },
     { id: 'mapa', label: 'MAPA', icon: MapIcon },
     { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+    { id: 'historial', label: 'HISTORIAL', icon: History },
     { id: 'ajustes', label: 'AJUSTES', icon: Settings },
   ];
 
@@ -171,6 +173,13 @@ function App() {
                 <MapaUrbano />
               </Suspense>
             </div>
+          </div>
+        )}
+
+        {/* VISTA: HISTORIAL */}
+        {activeTab === 'historial' && (
+          <div className="h-full animate-fade-in">
+            <HistorialView />
           </div>
         )}
 
