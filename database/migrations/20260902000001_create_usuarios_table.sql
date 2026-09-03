@@ -3,6 +3,6 @@ CREATE TABLE IF NOT EXISTS usuarios (
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'operador',
+    role TEXT NOT NULL DEFAULT 'operador', -- noqa: RF04
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
