@@ -7,6 +7,25 @@ import { INCIDENT_COLORS, INCIDENT_LABELS } from './incidentColors';
 
 // Fallback si TE_N8N_REPORTS_LIST_URL no está configurada en el entorno de despliegue
 const N8N_REPORTS_LIST_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/reports-list';
+const N8N_REPORT_IMAGE_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/report-image';
+
+// El SDK de TomTom trae variantes diurna y nocturna, así que el mapa acompaña
+// al tema de la aplicación en vez de quedarse siempre claro.
+const ESTILOS_MAPA = {
+  dark: { map: 'basic_night', poi: 'poi_main', trafficIncidents: 'incidents_night', trafficFlow: 'flow_relative0-dark' },
+  light: { map: 'basic_main', poi: 'poi_main', trafficIncidents: 'incidents_day', trafficFlow: 'flow_relative0' },
+};
+
+// El host marca el tema con la clase 'light' en <html>. Como este microfrontend
+// se ejecuta dentro de esa misma página, puede leerlo y observar sus cambios.
+function temaActual() {
+  return document.documentElement.classList.contains('light') ? 'light' : 'dark';
+}
+
+function urlImagenReporte(id) {
+  const base = import.meta.env.TE_N8N_REPORT_IMAGE_URL || N8N_REPORT_IMAGE_URL;
+  return `${base}?id=${encodeURIComponent(id)}`;
+}
 
 // Construimos el contenido del popup con nodos del DOM y textContent en vez de
 // setHTML: la descripción la escribe el ciudadano y setHTML no sanitiza nada.
@@ -39,11 +58,51 @@ function crearContenidoPopup(reporte) {
     cont.appendChild(linea);
   }
 
+  if (reporte.reportado_por) {
+    const autor = document.createElement('p');
+    autor.textContent = `Reportado por: ${reporte.reportado_por}`;
+    cont.appendChild(autor);
+  }
+
   if (reporte.created_at) {
     const fecha = document.createElement('p');
     fecha.style.opacity = '0.7';
     fecha.textContent = new Date(reporte.created_at).toLocaleString();
     cont.appendChild(fecha);
+  }
+
+  // La imagen no viaja en el listado (pesaría demasiado): se pide solo cuando
+  // el ciudadano abre el popup de ese reporte concreto.
+  if (reporte.tiene_imagen) {
+    const zona = document.createElement('div');
+    zona.style.marginTop = '6px';
+
+    const aviso = document.createElement('p');
+    aviso.style.opacity = '0.7';
+    aviso.textContent = 'Cargando imagen...';
+    zona.appendChild(aviso);
+
+    fetch(urlImagenReporte(reporte.id))
+      .then((r) => r.json())
+      .then((datos) => {
+        const fuente = Array.isArray(datos) ? datos[0] : datos;
+        if (!fuente || !fuente.image_url) {
+          aviso.textContent = 'La imagen ya no está disponible.';
+          return;
+        }
+        const img = document.createElement('img');
+        img.src = fuente.image_url;
+        img.alt = 'Fotografía del reporte';
+        img.style.width = '100%';
+        img.style.borderRadius = '8px';
+        img.style.marginTop = '2px';
+        zona.replaceChild(img, aviso);
+      })
+      .catch(() => {
+        aviso.textContent = 'No se pudo cargar la imagen.';
+      });
+
+    cont.appendChild(zona);
   }
 
   return cont;
@@ -59,6 +118,7 @@ const MapaUrbano = ({ lat, lon }) => {
   const [busqueda, setBusqueda] = useState('');
   const [tipoActivo, setTipoActivo] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [tema, setTema] = useState(temaActual);
 
   // Efecto 1: Inicializar el mapa la primera vez
   useEffect(() => {
@@ -67,6 +127,7 @@ const MapaUrbano = ({ lat, lon }) => {
       container: mapContainer.current,
       center: [-77.0428, -12.0464],
       zoom: 12,
+      style: ESTILOS_MAPA[temaActual()],
     });
 
     map.current = mapInstance;
@@ -76,6 +137,25 @@ const MapaUrbano = ({ lat, lon }) => {
       map.current = null;
     };
   }, []);
+
+  // Efecto: seguir el tema del host. La clase vive en <html>, fuera del árbol de
+  // React de este remote, así que se observa el atributo class en vez de recibirlo
+  // por props (no hay estado compartido entre microfrontends federados).
+  useEffect(() => {
+    const observador = new MutationObserver(() => {
+      setTema(temaActual());
+    });
+
+    observador.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    return () => observador.disconnect();
+  }, []);
+
+  // Efecto: aplicar al mapa el estilo correspondiente al tema
+  useEffect(() => {
+    if (!map.current) return;
+    map.current.setStyle(ESTILOS_MAPA[tema]);
+  }, [tema]);
 
   // Efecto 2: Mover el mapa y poner el marcador de la ubicación recibida por props
   useEffect(() => {
