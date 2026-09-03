@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import tt from '@tomtom-international/web-sdk-maps';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
+import './index.css';
+import MapLegend from './MapLegend';
+import { INCIDENT_COLORS } from './incidentColors';
+
+// Fallback si TE_N8N_REPORTS_LIST_URL no está configurada en el entorno de despliegue
+const N8N_REPORTS_LIST_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/reports-list';
 
 const MapaUrbano = ({ lat, lon }) => {
   const mapContainer = useRef(null);
@@ -11,7 +17,7 @@ const MapaUrbano = ({ lat, lon }) => {
   useEffect(() => {
     // Creamos la instancia del mapa
     const mapInstance = tt.map({
-      key: import.meta.env.VITE_TOMTOM_API_KEY, 
+      key: import.meta.env.VITE_TOMTOM_API_KEY,
       container: mapContainer.current,
       center: [-77.0428, -12.0464],
       zoom: 12,
@@ -47,25 +53,18 @@ const MapaUrbano = ({ lat, lon }) => {
     }
   }, [lat, lon]);
 
-  // Efecto 3: Cargar todos los reportes históricos para mostrarlos en el mapa
+  // Efecto 3: Cargar todos los reportes históricos para mostrarlos en el mapa, coloreados por tipo
   useEffect(() => {
     const fetchReportesUrbanos = async () => {
       try {
-        // Validación de seguridad de la variable de entorno
-        const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
-        if (!webhookUrl) {
-          console.error("Variable TE_N8N_WEBHOOK_URL no configurada en el entorno.");
-          return;
-        }
+        const webhookUrl = import.meta.env.TE_N8N_REPORTS_LIST_URL || N8N_REPORTS_LIST_URL;
 
-        // Fetch corregido (sin el error de sintaxis)
         const response = await fetch(webhookUrl);
         const data = await response.json();
-        
-        // Aquí recorremos la data que viene de Postgres y ponemos marcadores masivos
+
         data.forEach(reporte => {
           if (reporte.latitude && reporte.longitude) {
-            new tt.Marker()
+            new tt.Marker({ color: INCIDENT_COLORS[reporte.incident_type] || INCIDENT_COLORS.otro })
               .setLngLat([parseFloat(reporte.longitude), parseFloat(reporte.latitude)])
               .addTo(map.current);
           }
@@ -81,7 +80,10 @@ const MapaUrbano = ({ lat, lon }) => {
   }, []); // Array vacío para que el linter no lance la advertencia de refs
 
   return (
-    <div ref={mapContainer} style={{ width: '100%', height: '100%' }}></div>
+    <div className="relative w-full h-full">
+      <div ref={mapContainer} style={{ width: '100%', height: '100%' }}></div>
+      <MapLegend colors={INCIDENT_COLORS} />
+    </div>
   );
 };
 
