@@ -3,21 +3,10 @@ import tt from '@tomtom-international/web-sdk-maps';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 import './index.css';
 import MapLegend from './MapLegend';
+import { INCIDENT_COLORS } from './incidentColors';
 
 // Fallback si TE_N8N_REPORTS_LIST_URL no está configurada en el entorno de despliegue
 const N8N_REPORTS_LIST_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/reports-list';
-
-// Un color por cada valor real del enum incident_type que devuelve el clasificador (Gemini/Groq).
-// El morado de acento (#A855F7) queda reservado para la UI, no para codificar datos.
-export const INCIDENT_COLORS = {
-  infraestructura_vial: '#F59E0B',
-  alumbrado_publico: '#EAB308',
-  agua_saneamiento: '#3B82F6',
-  residuos: '#84CC16',
-  arbolado_urbano: '#22C55E',
-  incendio: '#EF4444',
-  otro: '#A1A1AA',
-};
 
 const MapaUrbano = ({ lat, lon }) => {
   const mapContainer = useRef(null);
