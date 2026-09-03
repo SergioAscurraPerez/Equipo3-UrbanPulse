@@ -52,9 +52,9 @@ const MapaUrbano = ({ lat, lon }) => {
     const fetchReportesUrbanos = async () => {
       try {
         // Validación de seguridad de la variable de entorno
-        const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+        const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
         if (!webhookUrl) {
-          console.error("Variable VITE_N8N_WEBHOOK_URL no configurada en el entorno.");
+          console.error("Variable TE_N8N_WEBHOOK_URL no configurada en el entorno.");
           return;
         }
 
