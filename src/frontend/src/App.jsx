@@ -9,8 +9,7 @@ const Dashboard = React.lazy(() => import('mf_dashboard/Dashboard'));
 const Chatbot = React.lazy(() => import('mf_chatbot/Chatbot'));
 
 function App() {
-  // El chat es ahora la vista principal por defecto
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState('inicio');
   const [theme, setTheme] = useState(getInitialTheme);
 
   useEffect(() => {
@@ -103,14 +102,42 @@ function App() {
       {/* ÁREA DE CONTENIDO PRINCIPAL */}
       <main className="flex-1 relative overflow-hidden bg-[var(--color-bg-app)]">
         
-        {/* VISTA: INICIO */}
+        {/* VISTA: INICIO (Landing) */}
         {activeTab === 'inicio' && (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in">
-            <Activity size={80} className="text-[var(--color-accent)] mb-8 opacity-20 drop-shadow-[0_0_30px_rgba(168,85,247,0.5)]" />
-            <h2 className="text-4xl font-bold mb-4 tracking-tight">Bienvenido a <span className="text-[var(--color-accent)]">UrbanPulse</span></h2>
-            <p className="text-[var(--color-text-secondary)] max-w-lg text-lg leading-relaxed">
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in overflow-y-auto">
+            <div className="p-4 bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] mb-6 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+              <Activity size={48} className="text-[var(--color-accent)]" />
+            </div>
+            <h1 className="text-4xl font-bold mb-3 tracking-tight">
+              URBAN<span className="text-[var(--color-accent)]">PULSE</span>
+            </h1>
+            <p className="text-[var(--color-text-secondary)] max-w-lg text-lg leading-relaxed mb-3">
               Sistema predictivo de incidentes urbanos impulsado por Inteligencia Artificial.
             </p>
+            <span className="text-xs text-[var(--color-accent)] flex items-center gap-1.5 mb-10">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
+              Sistema En Línea
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+              {[
+                { id: 'chat', label: 'Chat', desc: 'Reporta un incidente conversando con el agente de IA.', icon: MessageSquare },
+                { id: 'mapa', label: 'Mapa', desc: 'Visualiza incidentes y congestión en tiempo real.', icon: MapIcon },
+                { id: 'dashboard', label: 'Dashboard', desc: 'Revisa KPIs y tendencias de la ciudad.', icon: LayoutDashboard },
+              ].map(({ id, label, desc, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className="flex flex-col items-start text-left gap-3 p-5 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 hover:-translate-y-0.5 transition-all"
+                >
+                  <div className="p-2 bg-[var(--color-panel)] rounded-lg border border-[var(--color-border)] text-[var(--color-accent)]">
+                    <Icon size={20} />
+                  </div>
+                  <span className="font-bold text-[var(--color-text-primary)]">{label}</span>
+                  <span className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{desc}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
