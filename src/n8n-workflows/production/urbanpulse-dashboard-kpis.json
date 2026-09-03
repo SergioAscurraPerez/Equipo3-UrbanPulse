@@ -23,6 +23,7 @@
         "query": "SELECT COUNT(*)::int AS total FROM reports;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [224, 0],
@@ -41,6 +42,7 @@
         "query": "SELECT COUNT(*)::int AS total FROM reports WHERE created_at >= now() - interval '24 hours';",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [448, 0],
@@ -59,6 +61,7 @@
         "query": "SELECT incident_type AS name, COUNT(*)::int AS value\nFROM reports\nWHERE incident_type IS NOT NULL\nGROUP BY incident_type\nORDER BY value DESC;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [672, 0],
@@ -77,6 +80,7 @@
         "query": "SELECT severity AS name, COUNT(*)::int AS value\nFROM reports\nWHERE severity IS NOT NULL\nGROUP BY severity\nORDER BY value DESC;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [896, 0],
@@ -95,6 +99,7 @@
         "query": "SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS name, COUNT(*)::int AS value\nFROM reports\nWHERE created_at >= now() - interval '30 days'\nGROUP BY 1\nORDER BY 1;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [1120, 0],
@@ -113,6 +118,7 @@
         "query": "WITH latest AS (\n  SELECT DISTINCT ON (punto_nombre) punto_nombre, porcentaje_congestion, estado\n  FROM traffic_readings\n  ORDER BY punto_nombre, captured_at DESC\n)\nSELECT\n  ROUND(AVG(porcentaje_congestion)::numeric, 1) AS congestion_promedio,\n  COUNT(*) FILTER (WHERE estado = 'Congestionado')::int AS puntos_congestionados,\n  COUNT(*)::int AS total_puntos\nFROM latest;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [1344, 0],
@@ -131,6 +137,7 @@
         "query": "SELECT distrito AS name, COUNT(*)::int AS value\nFROM siniestros_fatales\nWHERE distrito IS NOT NULL\nGROUP BY distrito\nORDER BY value DESC\nLIMIT 10;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [1568, 0],
@@ -149,6 +156,7 @@
         "query": "SELECT clase_siniestro AS name, COUNT(*)::int AS value, COALESCE(SUM(fallecidos), 0)::int AS fallecidos\nFROM siniestros_fatales\nWHERE clase_siniestro IS NOT NULL\nGROUP BY clase_siniestro\nORDER BY value DESC;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [1792, 0],
@@ -167,6 +175,7 @@
         "query": "SELECT COUNT(*)::int AS total, COALESCE(SUM(fallecidos), 0)::int AS fallecidos_total\nFROM siniestros_fatales;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [2016, 0],
@@ -211,6 +220,7 @@
         "query": "SELECT id, description, incident_type, severity, priority, status, latitude, longitude, created_at\nFROM reports\nWHERE latitude IS NOT NULL AND longitude IS NOT NULL\nORDER BY created_at DESC\nLIMIT 500;",
         "options": {}
       },
+      "executeOnce": true,
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [224, 320],
