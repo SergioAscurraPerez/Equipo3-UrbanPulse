@@ -217,7 +217,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, description, incident_type, severity, priority, status, latitude, longitude, created_at\nFROM reports\nWHERE latitude IS NOT NULL AND longitude IS NOT NULL\nORDER BY created_at DESC\nLIMIT 500;",
+        "query": "SELECT r.id, r.description, r.incident_type, r.severity, r.priority, r.status,\n       r.latitude, r.longitude, r.created_at, r.resolved_at,\n       (r.image_url IS NOT NULL) AS tiene_imagen,\n       u.email AS reportado_por\nFROM reports AS r\nLEFT JOIN usuarios AS u ON u.id = r.usuario_id\nWHERE r.latitude IS NOT NULL AND r.longitude IS NOT NULL\nORDER BY r.created_at DESC\nLIMIT 500;",
         "options": {}
       },
       "executeOnce": true,
@@ -226,6 +226,118 @@
       "position": [224, 320],
       "id": "b3f1a001-1a2b-4c3d-9e4f-000000000013",
       "name": "Listar reportes",
+      "credentials": {
+        "postgres": {
+          "id": "Il4alMQXMjgKNxRO",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "urbanpulse/reports-history",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 640],
+      "id": "b3f1a001-1a2b-4c3d-9e4f-000000000014",
+      "name": "Webhook Historial",
+      "webhookId": "b3f1a001-1a2b-4c3d-9e4f-100000000014"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT r.id, r.description, r.incident_type, r.severity, r.priority, r.status,\n       r.latitude, r.longitude, r.created_at, r.resolved_at,\n       (r.image_url IS NOT NULL) AS tiene_imagen,\n       u.email AS reportado_por\nFROM reports AS r\nLEFT JOIN usuarios AS u ON u.id = r.usuario_id\nORDER BY r.created_at DESC\nLIMIT 200;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [224, 640],
+      "id": "b3f1a001-1a2b-4c3d-9e4f-000000000015",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "name": "Historial de reportes",
+      "credentials": {
+        "postgres": {
+          "id": "Il4alMQXMjgKNxRO",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "urbanpulse/report-image",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 960],
+      "id": "b3f1a001-1a2b-4c3d-9e4f-000000000016",
+      "name": "Webhook Imagen",
+      "webhookId": "b3f1a001-1a2b-4c3d-9e4f-100000000016"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, image_url FROM reports WHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.id || null] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [224, 960],
+      "id": "b3f1a001-1a2b-4c3d-9e4f-000000000017",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "name": "Imagen del reporte",
+      "credentials": {
+        "postgres": {
+          "id": "Il4alMQXMjgKNxRO",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "urbanpulse/report-resolve",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 1280],
+      "id": "b3f1a001-1a2b-4c3d-9e4f-000000000018",
+      "name": "Webhook Resolver",
+      "webhookId": "b3f1a001-1a2b-4c3d-9e4f-100000000018"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE reports\nSET status = CASE WHEN $2 = 'resuelto' THEN 'resuelto' ELSE 'pending' END,\n    resolved_at = CASE WHEN $2 = 'resuelto' THEN now() ELSE NULL END\nWHERE id = $1\nRETURNING id, status, resolved_at;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id || null, $json.body.status || 'pending'] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [224, 1280],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "b3f1a001-1a2b-4c3d-9e4f-000000000019",
+      "name": "Marcar reporte",
       "credentials": {
         "postgres": {
           "id": "Il4alMQXMjgKNxRO",
@@ -268,6 +380,15 @@
     },
     "Webhook Reportes": {
       "main": [[{ "node": "Listar reportes", "type": "main", "index": 0 }]]
+    },
+    "Webhook Historial": {
+      "main": [[{ "node": "Historial de reportes", "type": "main", "index": 0 }]]
+    },
+    "Webhook Imagen": {
+      "main": [[{ "node": "Imagen del reporte", "type": "main", "index": 0 }]]
+    },
+    "Webhook Resolver": {
+      "main": [[{ "node": "Marcar reporte", "type": "main", "index": 0 }]]
     }
   },
   "active": true,
