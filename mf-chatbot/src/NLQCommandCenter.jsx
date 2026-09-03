@@ -1,14 +1,49 @@
 import { useState, useRef } from 'react';
-import { Send, Camera, Bot, User, MapPin, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Send, Camera, Bot, User, MapPin, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import './index.css';
+import { getSession, saveSession, clearSession } from './session';
+import ChatAuthGate from './ChatAuthGate';
+
+// Coordenadas de respaldo (Lima) si el navegador no da permiso de geolocalización o no la soporta
+const FALLBACK_LAT = -12.0464;
+const FALLBACK_LON = -77.0428;
+
+function obtenerUbicacionActual() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve({ lat: FALLBACK_LAT, lon: FALLBACK_LON });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => resolve({ lat: FALLBACK_LAT, lon: FALLBACK_LON }),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  });
+}
 
 export default function NLQCommandCenter() {
+  const [session, setSession] = useState(getSession);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [sessionId] = useState(() => `sesion-${Date.now()}`);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+
+  const handleAuth = (authData) => {
+    saveSession(authData);
+    setSession(authData);
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+  };
+
+  if (!session) {
+    return <ChatAuthGate onAuth={handleAuth} />;
+  }
 
   // Función para convertir la imagen a formato Base64 (Texto) para n8n
   const getBase64 = (file) => {
@@ -55,13 +90,13 @@ export default function NLQCommandCenter() {
         imagenBase64 = await getBase64(fileInputRef.current.files[0]);
       }
 
-      // 3. Coordenadas simuladas
-      const latActual = -12.0464; 
-      const lonActual = -77.0428;
+      // 3. Ubicación real del dispositivo (con respaldo si no hay permiso/soporte)
+      const { lat: latActual, lon: lonActual } = await obtenerUbicacionActual();
 
       // 4. Armar el Payload JSON exacto que espera n8n
       const payload = {
         session_id: sessionId,
+        usuario_id: session.id,
         mensaje: textoUsuario,
         imagen_base64: imagenBase64,
         latitude: latActual,
@@ -135,12 +170,21 @@ export default function NLQCommandCenter() {
           <Bot className="text-[var(--color-accent)]" size={24} />
           <h1 className="text-xl font-bold tracking-wide">UrbanPulse <span className="text-[var(--color-accent)] font-normal">Command Center</span></h1>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[var(--color-accent-light)] bg-[var(--color-accent-light)]/10 px-3 py-1 rounded-full border border-[var(--color-accent-light)]/20">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent-light)] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-accent)]"></span>
-          </span>
-          Sistema Predictivo Activo
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-[var(--color-accent-light)] bg-[var(--color-accent-light)]/10 px-3 py-1 rounded-full border border-[var(--color-accent-light)]/20">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent-light)] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-accent)]"></span>
+            </span>
+            {session.username}
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Cerrar sesión"
+            className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-red-400 transition-colors"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </header>
 
