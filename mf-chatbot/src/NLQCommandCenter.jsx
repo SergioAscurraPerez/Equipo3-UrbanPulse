@@ -128,17 +128,17 @@ export default function NLQCommandCenter() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0A0A0D] text-[#F4F4F5] font-sans">
+    <div className="flex flex-col h-full bg-[var(--color-bg-app)] text-[var(--color-text-primary)] font-sans">
       
-      <header className="bg-[#121218] p-4 border-b border-[#30303D] shadow-md flex items-center justify-between z-10">
+      <header className="bg-[var(--color-panel)] p-4 border-b border-[var(--color-border)] shadow-md flex items-center justify-between z-10">
         <div className="flex items-center gap-2">
-          <Bot className="text-[#A855F7]" size={24} />
-          <h1 className="text-xl font-bold tracking-wide">UrbanPulse <span className="text-[#A855F7] font-normal">Command Center</span></h1>
+          <Bot className="text-[var(--color-accent)]" size={24} />
+          <h1 className="text-xl font-bold tracking-wide">UrbanPulse <span className="text-[var(--color-accent)] font-normal">Command Center</span></h1>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#C084FC] bg-[#C084FC]/10 px-3 py-1 rounded-full border border-[#C084FC]/20">
+        <div className="flex items-center gap-2 text-xs text-[var(--color-accent-light)] bg-[var(--color-accent-light)]/10 px-3 py-1 rounded-full border border-[var(--color-accent-light)]/20">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C084FC] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#A855F7]"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent-light)] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-accent)]"></span>
           </span>
           Sistema Predictivo Activo
         </div>
@@ -146,7 +146,7 @@ export default function NLQCommandCenter() {
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-[#A1A1AA]">
+          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-secondary)]">
             <Bot size={48} className="mb-4 opacity-20" />
             <p>Describe el incidente...</p>
             <p className="text-sm mt-1">Ej: &quot;Hay un bache gigante frente al parque.&quot;</p>
@@ -156,42 +156,42 @@ export default function NLQCommandCenter() {
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-3 ${msg.sender === 'ciudadano' ? 'flex-row-reverse' : ''}`}>
             
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-[#30303D] ${msg.sender === 'ciudadano' ? 'bg-[#A855F7]/20 text-[#C084FC]' : 'bg-[#1B1B24] text-[#A855F7]'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-[var(--color-border)] ${msg.sender === 'ciudadano' ? 'bg-[var(--color-accent)]/20 text-[var(--color-accent-light)]' : 'bg-[var(--color-card)] text-[var(--color-accent)]'}`}>
               {msg.sender === 'ciudadano' ? <User size={16} /> : <Bot size={16} />}
             </div>
 
             <div className={`max-w-[80%] flex flex-col gap-2 ${msg.sender === 'ciudadano' ? 'items-end' : 'items-start'}`}>
               {!msg.isStatusCard && (
-                <div className={`p-3 rounded-2xl border border-[#30303D] shadow-sm ${msg.sender === 'ciudadano' ? 'bg-[#A855F7]/10 text-[#F4F4F5] rounded-tr-none' : 'bg-[#1B1B24] text-[#A1A1AA] rounded-tl-none'}`}>
+                <div className={`p-3 rounded-2xl border border-[var(--color-border)] shadow-sm ${msg.sender === 'ciudadano' ? 'bg-[var(--color-accent)]/10 text-[var(--color-text-primary)] rounded-tr-none' : 'bg-[var(--color-card)] text-[var(--color-text-secondary)] rounded-tl-none'}`}>
                   {msg.text && <p>{msg.text}</p>}
                   {msg.image && (
-                    <img src={msg.image} alt="Reporte" className="mt-2 rounded-lg max-w-xs object-cover border border-[#30303D]" />
+                    <img src={msg.image} alt="Reporte" className="mt-2 rounded-lg max-w-xs object-cover border border-[var(--color-border)]" />
                   )}
                 </div>
               )}
 
               {msg.isStatusCard && (
-                <div className="bg-[#1B1B24] border-l-4 border-[#A855F7] rounded-r-lg p-4 shadow-[0_4px_20px_rgba(168,85,247,0.1)] w-full max-w-sm mt-2">
+                <div className="bg-[var(--color-card)] border-l-4 border-[var(--color-accent)] rounded-r-lg p-4 shadow-[0_4px_20px_rgba(168,85,247,0.1)] w-full max-w-sm mt-2">
                   <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle className="text-[#A855F7]" size={20} />
-                    <h3 className="font-bold text-[#F4F4F5]">Ticket #{msg.ticketData.id} Confirmado</h3>
+                    <CheckCircle className="text-[var(--color-accent)]" size={20} />
+                    <h3 className="font-bold text-[var(--color-text-primary)]">Ticket #{msg.ticketData.id} Confirmado</h3>
                   </div>
-                  <div className="space-y-2 text-sm text-[#A1A1AA]">
-                    <p className="flex justify-between border-b border-[#30303D] pb-1">
-                      <span>Tipo:</span> <span className="text-[#F4F4F5]">{msg.ticketData.tipo}</span>
+                  <div className="space-y-2 text-sm text-[var(--color-text-secondary)]">
+                    <p className="flex justify-between border-b border-[var(--color-border)] pb-1">
+                      <span>Tipo:</span> <span className="text-[var(--color-text-primary)]">{msg.ticketData.tipo}</span>
                     </p>
-                    <p className="flex justify-between border-b border-[#30303D] pb-1 items-center">
+                    <p className="flex justify-between border-b border-[var(--color-border)] pb-1 items-center">
                       <span>Gravedad:</span> 
                       <span className="bg-red-900/30 text-red-400 border border-red-900/50 px-2 py-0.5 rounded flex items-center gap-1 font-semibold text-xs">
                         <AlertTriangle size={12} /> {msg.ticketData.gravedad}
                       </span>
                     </p>
-                    <p className="flex justify-between border-b border-[#30303D] pb-1">
+                    <p className="flex justify-between border-b border-[var(--color-border)] pb-1">
                       <span>Coordenadas:</span> 
-                      <span className="flex items-center gap-1 text-[#C084FC] text-right max-w-[150px]"><MapPin size={12} className="shrink-0"/> {msg.ticketData.gps}</span>
+                      <span className="flex items-center gap-1 text-[var(--color-accent-light)] text-right max-w-[150px]"><MapPin size={12} className="shrink-0"/> {msg.ticketData.gps}</span>
                     </p>
                     <p className="flex justify-between pt-1">
-                      <span>Acción:</span> <span className="text-[#A855F7] text-right max-w-[150px]">{msg.ticketData.accion}</span>
+                      <span>Acción:</span> <span className="text-[var(--color-accent)] text-right max-w-[150px]">{msg.ticketData.accion}</span>
                     </p>
                   </div>
                 </div>
@@ -202,24 +202,24 @@ export default function NLQCommandCenter() {
 
         {isAnalyzing && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#1B1B24] border border-[#30303D] flex items-center justify-center shrink-0">
-              <Bot size={16} className="text-[#A855F7]" />
+            <div className="w-8 h-8 rounded-full bg-[var(--color-card)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
+              <Bot size={16} className="text-[var(--color-accent)]" />
             </div>
-            <div className="bg-[#1B1B24] border border-[#30303D] p-3 rounded-2xl rounded-tl-none flex items-center gap-3">
-              <div className="animate-spin h-4 w-4 border-2 border-[#A855F7] border-t-transparent rounded-full"></div>
-              <span className="text-sm text-[#C084FC] animate-pulse">Procesando reporte con IA...</span>
+            <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-3 rounded-2xl rounded-tl-none flex items-center gap-3">
+              <div className="animate-spin h-4 w-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full"></div>
+              <span className="text-sm text-[var(--color-accent-light)] animate-pulse">Procesando reporte con IA...</span>
             </div>
           </div>
         )}
       </main>
 
-      <footer className="p-4 bg-[#121218] border-t border-[#30303D]">
+      <footer className="p-4 bg-[var(--color-panel)] border-t border-[var(--color-border)]">
         {imagePreview && (
           <div className="mb-3 relative inline-block">
-            <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-[#A855F7] object-cover" />
+            <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-[var(--color-accent)] object-cover" />
             <button 
               onClick={() => setImagePreview(null)}
-              className="absolute -top-2 -right-2 bg-[#1B1B24] text-red-400 rounded-full p-1 border border-[#30303D] hover:bg-[#30303D] transition-colors"
+              className="absolute -top-2 -right-2 bg-[var(--color-card)] text-red-400 rounded-full p-1 border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors"
             >
               ×
             </button>
@@ -230,7 +230,7 @@ export default function NLQCommandCenter() {
           <button 
             type="button"
             onClick={() => fileInputRef.current.click()}
-            className="p-3 text-[#A1A1AA] hover:text-[#A855F7] hover:bg-[#1B1B24] rounded-xl transition-colors shrink-0"
+            className="p-3 text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-card)] rounded-xl transition-colors shrink-0"
             title="Adjuntar fotografía"
           >
             <Camera size={24} />
@@ -248,12 +248,12 @@ export default function NLQCommandCenter() {
             onChange={(e) => setInputText(e.target.value)}
             disabled={isAnalyzing}
             placeholder="Reporta un incidente...."
-            className="flex-1 bg-[#1B1B24] text-[#F4F4F5] placeholder-[#A1A1AA] px-4 py-3 rounded-xl border border-[#30303D] focus:outline-none focus:border-[#A855F7] focus:ring-1 focus:ring-[#A855F7] disabled:opacity-50 transition-all"
+            className="flex-1 bg-[var(--color-card)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] px-4 py-3 rounded-xl border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-50 transition-all"
           />
           <button 
             type="submit"
             disabled={(!inputText.trim() && !imagePreview) || isAnalyzing}
-            className="p-3 bg-[#A855F7] text-white rounded-xl hover:bg-[#C084FC] transition-colors disabled:opacity-50 disabled:hover:bg-[#A855F7] shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+            className="p-3 bg-[var(--color-accent)] text-white rounded-xl hover:bg-[var(--color-accent-light)] transition-colors disabled:opacity-50 disabled:hover:bg-[var(--color-accent)] shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
           >
             <Send size={20} />
           </button>

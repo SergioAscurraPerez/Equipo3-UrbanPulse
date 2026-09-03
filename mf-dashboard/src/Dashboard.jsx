@@ -9,9 +9,9 @@ const COLORS = ['#A855F7', '#C084FC', '#6366f1', '#14b8a6'];
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#121218] border border-[#30303D] p-3 rounded-lg shadow-lg">
-        <p className="text-[#F4F4F5] font-bold mb-1">{label || payload[0].name}</p>
-        <p className="text-[#C084FC] font-medium">{`${payload[0].value} reportes`}</p>
+      <div className="bg-[var(--color-panel)] border border-[var(--color-border)] p-3 rounded-lg shadow-lg">
+        <p className="text-[var(--color-text-primary)] font-bold mb-1">{label || payload[0].name}</p>
+        <p className="text-[var(--color-accent-light)] font-medium">{`${payload[0].value} reportes`}</p>
       </div>
     );
   }
@@ -87,11 +87,11 @@ export default function Dashboard() {
     <div className="h-full flex flex-col space-y-6">
       
       {/* 1. BARRA DE BÚSQUEDA NLQ */}
-      <div className="bg-[#1B1B24] border border-[#30303D] rounded-2xl p-4 shadow-lg">
+      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-4 shadow-lg">
         <form onSubmit={handleNLQSearch} className="flex gap-3">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="text-[#A855F7]" size={20} />
+              <Search className="text-[var(--color-accent)]" size={20} />
             </div>
             <input
               type="text"
@@ -99,13 +99,13 @@ export default function Dashboard() {
               onChange={(e) => setNlqQuery(e.target.value)}
               disabled={isAnalyzing}
               placeholder='Ej: "Muéstrame el gráfico de incidentes viales de esta semana en el centro"'
-              className="w-full bg-[#0A0A0D] text-[#F4F4F5] placeholder-[#A1A1AA] pl-11 pr-4 py-4 rounded-xl border border-[#30303D] focus:outline-none focus:border-[#A855F7] focus:ring-1 focus:ring-[#A855F7] transition-all"
+              className="w-full bg-[var(--color-bg-app)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] pl-11 pr-4 py-4 rounded-xl border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all"
             />
           </div>
           <button 
             type="submit"
             disabled={!nlqQuery.trim() || isAnalyzing}
-            className="px-6 bg-[#A855F7] text-white font-bold rounded-xl hover:bg-[#C084FC] transition-colors disabled:opacity-50 flex items-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+            className="px-6 bg-[var(--color-accent)] text-white font-bold rounded-xl hover:bg-[var(--color-accent-light)] transition-colors disabled:opacity-50 flex items-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
           >
             {isAnalyzing ? <Loader2 className="animate-spin" size={20} /> : <BarChart3 size={20} />}
             <span className="hidden md:inline">Analizar</span>
@@ -115,47 +115,47 @@ export default function Dashboard() {
 
       {/* 2. TARJETAS DE KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[#1B1B24] border border-[#30303D] p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-[#0A0A0D] rounded-xl text-emerald-400 border border-[#30303D]">
+        <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4">
+          <div className="p-3 bg-[var(--color-bg-app)] rounded-xl text-emerald-400 border border-[var(--color-border)]">
             <CheckCircle size={24} />
           </div>
           <div>
-            <p className="text-[#A1A1AA] text-sm font-medium">Incidentes Resueltos</p>
-            <h3 className="text-2xl font-bold text-[#F4F4F5]">{dashboardData.kpis.resueltos}</h3>
+            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Incidentes Resueltos</p>
+            <h3 className="text-2xl font-bold text-[var(--color-text-primary)]">{dashboardData.kpis.resueltos}</h3>
           </div>
         </div>
         
-        <div className="bg-[#1B1B24] border border-[#30303D] p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-[#0A0A0D] rounded-xl text-red-400 border border-[#30303D]">
+        <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4">
+          <div className="p-3 bg-[var(--color-bg-app)] rounded-xl text-red-400 border border-[var(--color-border)]">
             <AlertTriangle size={24} />
           </div>
           <div>
-            <p className="text-[#A1A1AA] text-sm font-medium">Zonas Críticas</p>
-            <h3 className="text-2xl font-bold text-[#F4F4F5]">{dashboardData.kpis.criticos}</h3>
+            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Zonas Críticas</p>
+            <h3 className="text-2xl font-bold text-[var(--color-text-primary)]">{dashboardData.kpis.criticos}</h3>
           </div>
         </div>
 
-        <div className="bg-[#1B1B24] border border-[#30303D] p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-[#0A0A0D] rounded-xl text-[#C084FC] border border-[#30303D]">
+        <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4">
+          <div className="p-3 bg-[var(--color-bg-app)] rounded-xl text-[var(--color-accent-light)] border border-[var(--color-border)]">
             <MapPin size={24} />
           </div>
           <div>
-            <p className="text-[#A1A1AA] text-sm font-medium">Sectores Mapeados</p>
-            <h3 className="text-2xl font-bold text-[#F4F4F5]">{dashboardData.kpis.zonas}</h3>
+            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Sectores Mapeados</p>
+            <h3 className="text-2xl font-bold text-[var(--color-text-primary)]">{dashboardData.kpis.zonas}</h3>
           </div>
         </div>
       </div>
 
       {/* 3. CONTENEDOR DEL GRÁFICO */}
-      <div className="flex-1 bg-[#1B1B24] border border-[#30303D] rounded-2xl p-6 min-h-[400px] flex flex-col">
-        <h3 className="text-lg font-bold text-[#F4F4F5] mb-6 flex items-center gap-2">
-          <Activity className="text-[#A855F7]" size={20} />
+      <div className="flex-1 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6 min-h-[400px] flex flex-col">
+        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-6 flex items-center gap-2">
+          <Activity className="text-[var(--color-accent)]" size={20} />
           {dashboardData.titulo}
         </h3>
         
         <div className="flex-1 w-full relative">
           {dashboardData.chartData.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-[#A1A1AA]">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-text-secondary)]">
               <BarChart3 size={48} className="mb-4 opacity-20" />
               <p>{dashboardData.titulo.includes("Error") ? "" : "El área de renderizado está lista."}</p>
               <p className="text-sm">{dashboardData.titulo.includes("Error") ? "Revisa la conexión." : "Realiza una consulta a la IA para generar el gráfico."}</p>
@@ -182,11 +182,11 @@ export default function Dashboard() {
                 </PieChart>
               ) : (
                 <BarChart data={dashboardData.chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#30303D" vertical={false} />
-                  <XAxis dataKey="name" stroke="#A1A1AA" tick={{fill: '#A1A1AA'}} axisLine={false} tickLine={false} />
-                  <YAxis stroke="#A1A1AA" tick={{fill: '#A1A1AA'}} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={{fill: '#30303D', opacity: 0.4}} />
-                  <Bar dataKey="value" fill="#A855F7" radius={[6, 6, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="name" stroke="var(--color-text-secondary)" tick={{fill: 'var(--color-text-secondary)'}} axisLine={false} tickLine={false} />
+                  <YAxis stroke="var(--color-text-secondary)" tick={{fill: 'var(--color-text-secondary)'}} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--color-border)', opacity: 0.4}} />
+                  <Bar dataKey="value" fill="var(--color-accent)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               )}
             </ResponsiveContainer>
