@@ -1,199 +1,201 @@
-import { useState } from 'react';
-import { Search, Activity, CheckCircle, AlertTriangle, MapPin, BarChart3, Loader2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useState, useEffect, useCallback } from 'react';
+import { Activity, BarChart3, Clock, Gauge, AlertTriangle, ShieldAlert, Users, RefreshCw, Loader2 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line, Legend,
+} from 'recharts';
 
-// Colores para los gráficos (Basados en tu paleta)
+// Colores para los gráficos (codificación de datos, no cromática de UI — no cambia con el tema)
 const COLORS = ['#A855F7', '#C084FC', '#6366f1', '#14b8a6'];
 
-// 1. SOLUCIÓN AL LINTER: Extraemos el Tooltip fuera del componente principal
+// Fallback si TE_N8N_DASHBOARD_KPIS_URL no está configurada en el entorno de despliegue
+const N8N_DASHBOARD_KPIS_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/dashboard-kpis';
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-[var(--color-panel)] border border-[var(--color-border)] p-3 rounded-lg shadow-lg">
         <p className="text-[var(--color-text-primary)] font-bold mb-1">{label || payload[0].name}</p>
-        <p className="text-[var(--color-accent-light)] font-medium">{`${payload[0].value} reportes`}</p>
+        {payload.map((entry) => (
+          <p key={entry.dataKey || entry.name} className="text-[var(--color-accent-light)] font-medium">
+            {`${entry.value} ${entry.name || ''}`}
+          </p>
+        ))}
       </div>
     );
   }
   return null;
 };
 
+function KpiCard({ icon: Icon, iconColorClass, label, value }) {
+  return (
+    <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4">
+      <div className={`p-3 bg-[var(--color-bg-app)] rounded-xl border border-[var(--color-border)] ${iconColorClass}`}>
+        <Icon size={24} />
+      </div>
+      <div>
+        <p className="text-[var(--color-text-secondary)] text-sm font-medium">{label}</p>
+        <h3 className="text-2xl font-bold text-[var(--color-text-primary)]">{value}</h3>
+      </div>
+    </div>
+  );
+}
+
+function ChartPanel({ title, children }) {
+  return (
+    <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6 min-h-[320px] flex flex-col">
+      <h3 className="text-base font-bold text-[var(--color-text-primary)] mb-4">{title}</h3>
+      <div className="flex-1 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          {children}
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const [nlqQuery, setNlqQuery] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
-  // Estado inicial
-  const [dashboardData, setDashboardData] = useState({
-    kpis: { resueltos: 0, criticos: 0, zonas: 0 },
-    chartType: 'bar',
-    chartData: [],
-    titulo: "Esperando consulta del operador..."
-  });
+  const [status, setStatus] = useState('loading');
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleNLQSearch = async (e) => {
-    e.preventDefault();
-    
-    // TAREA 4 (Bug UP-QA-01): Sanitización y recorte de espacios en blanco
-    const consultaLimpia = nlqQuery.trim();
-    if (!consultaLimpia) {
-      setNlqQuery(''); // Limpiamos el input visualmente si solo contenía espacios
-      return; 
-    }
-    
-    setIsAnalyzing(true);
-
+  const cargarKpis = useCallback(async () => {
+    setStatus('loading');
+    setError(null);
     try {
-      // TAREA 2: Uso estricto de variables de entorno (Eliminando URL hardcodeada)
-      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
-
-      if (!webhookUrl) {
-        throw new Error("Variable TE_N8N_WEBHOOK_URL no configurada en el entorno.");
-      }
-
-      // 1. CONEXIÓN CON N8N
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Enviamos la consulta sanitizada, asegurando que no viajen espacios vacíos
-        body: JSON.stringify({ consulta: consultaLimpia }) 
-      });
+      const webhookUrl = import.meta.env.TE_N8N_DASHBOARD_KPIS_URL || N8N_DASHBOARD_KPIS_URL;
+      const response = await fetch(webhookUrl);
 
       if (!response.ok) {
         throw new Error(`Error de conexión con n8n: ${response.status}`);
       }
 
-      // 2. n8n (Gemini) responde con el JSON estructurado
-      const data = await response.json();
-      
-      // 3. Actualizamos la pantalla con los datos reales
-      setDashboardData(data);
-
-    } catch (error) {
-      console.error("Error consultando métricas:", error);
-      // Si falla la conexión o falta la variable de entorno, avisamos al operador
-      setDashboardData({
-        kpis: { resueltos: 0, criticos: 0, zonas: 0 },
-        chartType: 'bar',
-        chartData: [],
-        titulo: "Error: Verifica la conexión a n8n o tu archivo .env local."
-      });
-    } finally {
-      // Apagamos la animación de carga, ya sea que haya funcionado o fallado
-      setIsAnalyzing(false);
+      const json = await response.json();
+      setData(json);
+      setStatus('success');
+    } catch (err) {
+      console.error('Error cargando KPIs del dashboard:', err);
+      setError(err.message || 'No se pudo conectar con el servidor de métricas.');
+      setStatus('error');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    cargarKpis();
+  }, [cargarKpis]);
+
+  const kpis = data?.kpis;
+  const charts = data?.charts;
 
   return (
-    <div className="h-full flex flex-col space-y-6">
-      
-      {/* 1. BARRA DE BÚSQUEDA NLQ */}
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-4 shadow-lg">
-        <form onSubmit={handleNLQSearch} className="flex gap-3">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="text-[var(--color-accent)]" size={20} />
-            </div>
-            <input
-              type="text"
-              value={nlqQuery}
-              onChange={(e) => setNlqQuery(e.target.value)}
-              disabled={isAnalyzing}
-              placeholder='Ej: "Muéstrame el gráfico de incidentes viales de esta semana en el centro"'
-              className="w-full bg-[var(--color-bg-app)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] pl-11 pr-4 py-4 rounded-xl border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all"
-            />
-          </div>
-          <button 
-            type="submit"
-            disabled={!nlqQuery.trim() || isAnalyzing}
-            className="px-6 bg-[var(--color-accent)] text-white font-bold rounded-xl hover:bg-[var(--color-accent-light)] transition-colors disabled:opacity-50 flex items-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-          >
-            {isAnalyzing ? <Loader2 className="animate-spin" size={20} /> : <BarChart3 size={20} />}
-            <span className="hidden md:inline">Analizar</span>
-          </button>
-        </form>
+    <div className="h-full overflow-y-auto space-y-6">
+
+      {/* CABECERA */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Activity className="text-[var(--color-accent)]" size={22} />
+          <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Panel Analítico UrbanPulse</h2>
+        </div>
+        <button
+          onClick={cargarKpis}
+          disabled={status === 'loading'}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent-light)] hover:border-[var(--color-border)]/50 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={16} className={status === 'loading' ? 'animate-spin' : ''} />
+          <span className="text-sm font-medium">Actualizar</span>
+        </button>
       </div>
 
-      {/* 2. TARJETAS DE KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-[var(--color-bg-app)] rounded-xl text-emerald-400 border border-[var(--color-border)]">
-            <CheckCircle size={24} />
-          </div>
-          <div>
-            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Incidentes Resueltos</p>
-            <h3 className="text-2xl font-bold text-[var(--color-text-primary)]">{dashboardData.kpis.resueltos}</h3>
-          </div>
+      {status === 'loading' && !data && (
+        <div className="flex flex-col items-center justify-center py-24 text-[var(--color-accent)]">
+          <Loader2 size={32} className="animate-spin mb-4" />
+          <p className="text-[var(--color-text-secondary)]">Cargando métricas de la ciudad...</p>
         </div>
-        
-        <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-[var(--color-bg-app)] rounded-xl text-red-400 border border-[var(--color-border)]">
-            <AlertTriangle size={24} />
-          </div>
-          <div>
-            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Zonas Críticas</p>
-            <h3 className="text-2xl font-bold text-[var(--color-text-primary)]">{dashboardData.kpis.criticos}</h3>
-          </div>
-        </div>
+      )}
 
-        <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4">
-          <div className="p-3 bg-[var(--color-bg-app)] rounded-xl text-[var(--color-accent-light)] border border-[var(--color-border)]">
-            <MapPin size={24} />
-          </div>
-          <div>
-            <p className="text-[var(--color-text-secondary)] text-sm font-medium">Sectores Mapeados</p>
-            <h3 className="text-2xl font-bold text-[var(--color-text-primary)]">{dashboardData.kpis.zonas}</h3>
-          </div>
+      {status === 'error' && !data && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <AlertTriangle size={40} className="text-red-400 mb-4" />
+          <p className="text-[var(--color-text-primary)] font-medium mb-1">No se pudieron cargar los KPIs</p>
+          <p className="text-[var(--color-text-secondary)] text-sm max-w-md">{error}</p>
         </div>
-      </div>
+      )}
 
-      {/* 3. CONTENEDOR DEL GRÁFICO */}
-      <div className="flex-1 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6 min-h-[400px] flex flex-col">
-        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-6 flex items-center gap-2">
-          <Activity className="text-[var(--color-accent)]" size={20} />
-          {dashboardData.titulo}
-        </h3>
-        
-        <div className="flex-1 w-full relative">
-          {dashboardData.chartData.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-text-secondary)]">
-              <BarChart3 size={48} className="mb-4 opacity-20" />
-              <p>{dashboardData.titulo.includes("Error") ? "" : "El área de renderizado está lista."}</p>
-              <p className="text-sm">{dashboardData.titulo.includes("Error") ? "Revisa la conexión." : "Realiza una consulta a la IA para generar el gráfico."}</p>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              {dashboardData.chartType === 'pie' ? (
-                <PieChart>
-                  <Pie
-                    data={dashboardData.chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={120}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {dashboardData.chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              ) : (
-                <BarChart data={dashboardData.chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-                  <XAxis dataKey="name" stroke="var(--color-text-secondary)" tick={{fill: 'var(--color-text-secondary)'}} axisLine={false} tickLine={false} />
-                  <YAxis stroke="var(--color-text-secondary)" tick={{fill: 'var(--color-text-secondary)'}} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--color-border)', opacity: 0.4}} />
-                  <Bar dataKey="value" fill="var(--color-accent)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              )}
-            </ResponsiveContainer>
+      {kpis && (
+        <>
+          {/* TARJETAS DE KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <KpiCard icon={BarChart3} iconColorClass="text-[var(--color-accent)]" label="Total de Reportes" value={kpis.total_reportes} />
+            <KpiCard icon={Clock} iconColorClass="text-[var(--color-accent-light)]" label="Reportes Últimas 24h" value={kpis.reportes_ultimas_24h} />
+            <KpiCard icon={Gauge} iconColorClass="text-amber-400" label="Congestión Promedio" value={kpis.congestion_promedio != null ? `${kpis.congestion_promedio}%` : '—'} />
+            <KpiCard icon={AlertTriangle} iconColorClass="text-red-400" label="Puntos Congestionados" value={`${kpis.puntos_congestionados ?? 0}/${kpis.total_puntos_monitoreo ?? 0}`} />
+            <KpiCard icon={ShieldAlert} iconColorClass="text-emerald-400" label="Siniestros Fatales (histórico)" value={kpis.total_siniestros_fatales} />
+            <KpiCard icon={Users} iconColorClass="text-[var(--color-accent)]" label="Fallecidos (histórico)" value={kpis.total_fallecidos_historico} />
+          </div>
+
+          {/* GRÁFICOS */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartPanel title="Reportes por tipo de incidente">
+              <BarChart data={charts.reportes_por_tipo}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-border)', opacity: 0.4 }} />
+                <Bar dataKey="value" name="reportes" fill="var(--color-accent)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ChartPanel>
+
+            <ChartPanel title="Reportes por severidad">
+              <PieChart>
+                <Pie data={charts.reportes_por_severidad} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={5} dataKey="value" stroke="none">
+                  {charts.reportes_por_severidad?.map((entry, index) => (
+                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ChartPanel>
+
+            <ChartPanel title="Tendencia de reportes (30 días)">
+              <LineChart data={charts.tendencia_reportes_30d}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="value" name="reportes" stroke="var(--color-accent)" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ChartPanel>
+
+            <ChartPanel title="Siniestros fatales por distrito">
+              <BarChart data={charts.siniestros_por_distrito} layout="vertical" margin={{ left: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
+                <XAxis type="number" stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-border)', opacity: 0.4 }} />
+                <Bar dataKey="value" name="siniestros" fill="var(--color-accent-light)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ChartPanel>
+
+            <ChartPanel title="Siniestros fatales por clase">
+              <BarChart data={charts.siniestros_por_clase}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-border)', opacity: 0.4 }} />
+                <Legend wrapperStyle={{ fontSize: 12, color: 'var(--color-text-secondary)' }} />
+                <Bar dataKey="value" name="siniestros" fill="var(--color-accent)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="fallecidos" name="fallecidos" fill="#EF4444" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ChartPanel>
+          </div>
+
+          {data.generated_at && (
+            <p className="text-xs text-[var(--color-text-secondary)] text-right">
+              Última actualización: {new Date(data.generated_at).toLocaleString()}
+            </p>
           )}
-        </div>
-      </div>
-
+        </>
+      )}
     </div>
   );
 }
