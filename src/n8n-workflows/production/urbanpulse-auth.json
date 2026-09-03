@@ -29,6 +29,7 @@
       "typeVersion": 2.7,
       "position": [224, 0],
       "id": "c4a2b001-1a2b-4c3d-9e4f-000000000002",
+      "alwaysOutputData": true,
       "name": "Buscar usuario",
       "credentials": {
         "postgres": {
@@ -40,7 +41,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const crypto = require('crypto');\nconst filas = $input.all();\nconst body = $('Webhook Login').item.json.body || {};\nconst password = body.password || '';\n\nif (filas.length === 0) {\n  return [{ json: { match: false, username: body.username || null, role: null } }];\n}\n\nconst usuario = filas[0].json;\nconst hashCalculado = crypto.scryptSync(password, usuario.password_salt, 64);\nconst hashAlmacenado = Buffer.from(usuario.password_hash, 'hex');\n\nlet match = false;\nif (hashCalculado.length === hashAlmacenado.length) {\n  match = crypto.timingSafeEqual(hashCalculado, hashAlmacenado);\n}\n\nreturn [{ json: { match, username: usuario.username, role: usuario.role } }];"
+        "jsCode": "const crypto = require('crypto');\nconst filas = $input.all();\nconst body = $('Webhook Login').item.json.body || {};\nconst password = body.password || '';\n\n// Con alwaysOutputData, si no hay coincidencia llega un item vacío en vez de 0 items\nconst usuario = filas.length > 0 ? filas[0].json : null;\nif (!usuario || !usuario.password_hash) {\n  return [{ json: { match: false, id: null, username: body.username || null, role: null } }];\n}\n\nconst hashCalculado = crypto.scryptSync(password, usuario.password_salt, 64);\nconst hashAlmacenado = Buffer.from(usuario.password_hash, 'hex');\n\nlet match = false;\nif (hashCalculado.length === hashAlmacenado.length) {\n  match = crypto.timingSafeEqual(hashCalculado, hashAlmacenado);\n}\n\nreturn [{ json: { match, id: usuario.id, username: usuario.username, role: usuario.role } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -80,7 +81,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst { username, role } = $('Verificar credenciales').item.json;\nconst secret = $env.N8N_AUTH_SECRET;\n\nconst now = Date.now();\nconst expiresAt = now + 1000 * 60 * 60 * 12; // 12 horas\n\nconst payload = { sub: username, role, iat: now, exp: expiresAt };\nconst payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');\nconst firma = crypto.createHmac('sha256', secret).update(payloadB64).digest('hex');\nconst token = payloadB64 + '.' + firma;\n\nreturn [{\n  json: {\n    success: true,\n    token,\n    username,\n    role,\n    expires_at: new Date(expiresAt).toISOString()\n  }\n}];"
+        "jsCode": "const crypto = require('crypto');\nconst { id, username, role } = $('Verificar credenciales').item.json;\nconst secret = $env.N8N_AUTH_SECRET;\n\nconst now = Date.now();\nconst expiresAt = now + 1000 * 60 * 60 * 12; // 12 horas\n\nconst payload = { sub: username, id, role, iat: now, exp: expiresAt };\nconst payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');\nconst firma = crypto.createHmac('sha256', secret).update(payloadB64).digest('hex');\nconst token = payloadB64 + '.' + firma;\n\nreturn [{\n  json: {\n    success: true,\n    token,\n    id,\n    username,\n    role,\n    expires_at: new Date(expiresAt).toISOString()\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -185,6 +186,152 @@
           "name": "Postgres account"
         }
       }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "urbanpulse/auth/register",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 700],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000012",
+      "name": "Webhook Registro",
+      "webhookId": "c4a2b001-1a2b-4c3d-9e4f-100000000012"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM usuarios WHERE username = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.username || ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [224, 700],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000013",
+      "alwaysOutputData": true,
+      "name": "Verificar username disponible",
+      "credentials": {
+        "postgres": {
+          "id": "Il4alMQXMjgKNxRO",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const filas = $input.all();\nconst body = $('Webhook Registro').item.json.body || {};\nconst username = (body.username || '').trim();\nconst password = body.password || '';\n\n// Con alwaysOutputData, si el usuario está libre llega un item vacío en vez de 0 items\nconst yaExiste = filas.some((f) => f.json && f.json.id);\n\nlet error = null;\nif (username.length < 3) {\n  error = 'El usuario debe tener al menos 3 caracteres.';\n} else if (password.length < 8) {\n  error = 'La contraseña debe tener al menos 8 caracteres.';\n} else if (yaExiste) {\n  error = 'Ese usuario ya existe.';\n}\n\nreturn [{ json: { valido: error === null, error, username, password } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 700],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000014",
+      "name": "Validar disponibilidad"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-valido",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [672, 700],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000015",
+      "name": "¿Disponible?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst datos = $input.item.json;\nconst salt = crypto.randomBytes(16).toString('hex');\nconst hash = crypto.scryptSync(datos.password, salt, 64).toString('hex');\n\nreturn [{\n  json: {\n    username: datos.username,\n    password_hash: hash,\n    password_salt: salt,\n    role: 'ciudadano'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 600],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000016",
+      "name": "Hashear password (registro)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO usuarios (username, password_hash, password_salt, role)\nVALUES ($1, $2, $3, $4)\nON CONFLICT (username) DO NOTHING\nRETURNING id, username, role;",
+        "options": {
+          "queryReplacement": "={{ [$json.username, $json.password_hash, $json.password_salt, $json.role] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [1120, 600],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000017",
+      "name": "Insertar ciudadano",
+      "credentials": {
+        "postgres": {
+          "id": "Il4alMQXMjgKNxRO",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst { id, username, role } = $('Insertar ciudadano').item.json;\nconst secret = $env.N8N_AUTH_SECRET;\n\nconst now = Date.now();\nconst expiresAt = now + 1000 * 60 * 60 * 12; // 12 horas\n\nconst payload = { sub: username, id, role, iat: now, exp: expiresAt };\nconst payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');\nconst firma = crypto.createHmac('sha256', secret).update(payloadB64).digest('hex');\nconst token = payloadB64 + '.' + firma;\n\nreturn [{\n  json: {\n    success: true,\n    token,\n    id,\n    username,\n    role,\n    expires_at: new Date(expiresAt).toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1344, 600],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000018",
+      "name": "Generar token (registro)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1568, 600],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000019",
+      "name": "Responder 201"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error } }}",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [896, 800],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000020",
+      "name": "Responder 409"
     }
   ],
   "pinData": {},
@@ -215,6 +362,30 @@
     },
     "Hashear password": {
       "main": [[{ "node": "Insertar usuario", "type": "main", "index": 0 }]]
+    },
+    "Webhook Registro": {
+      "main": [[{ "node": "Verificar username disponible", "type": "main", "index": 0 }]]
+    },
+    "Verificar username disponible": {
+      "main": [[{ "node": "Validar disponibilidad", "type": "main", "index": 0 }]]
+    },
+    "Validar disponibilidad": {
+      "main": [[{ "node": "¿Disponible?", "type": "main", "index": 0 }]]
+    },
+    "¿Disponible?": {
+      "main": [
+        [{ "node": "Hashear password (registro)", "type": "main", "index": 0 }],
+        [{ "node": "Responder 409", "type": "main", "index": 0 }]
+      ]
+    },
+    "Hashear password (registro)": {
+      "main": [[{ "node": "Insertar ciudadano", "type": "main", "index": 0 }]]
+    },
+    "Insertar ciudadano": {
+      "main": [[{ "node": "Generar token (registro)", "type": "main", "index": 0 }]]
+    },
+    "Generar token (registro)": {
+      "main": [[{ "node": "Responder 201", "type": "main", "index": 0 }]]
     }
   },
   "active": true,
