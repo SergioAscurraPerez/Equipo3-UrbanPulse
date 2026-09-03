@@ -9,3 +9,13 @@ export const INCIDENT_COLORS = {
   incendio: '#EF4444',
   otro: '#A1A1AA',
 };
+
+export const INCIDENT_LABELS = {
+  infraestructura_vial: 'Infraestructura vial',
+  alumbrado_publico: 'Alumbrado público',
+  agua_saneamiento: 'Agua y saneamiento',
+  residuos: 'Residuos',
+  arbolado_urbano: 'Arbolado urbano',
+  incendio: 'Incendio',
+  otro: 'Otro',
+};
