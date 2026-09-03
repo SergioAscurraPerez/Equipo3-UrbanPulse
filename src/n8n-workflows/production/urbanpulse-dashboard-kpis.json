@@ -252,8 +252,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT r.id, r.description, r.incident_type, r.severity, r.priority, r.status,\n       r.latitude, r.longitude, r.created_at, r.resolved_at,\n       (r.image_url IS NOT NULL) AS tiene_imagen,\n       u.email AS reportado_por\nFROM reports AS r\nLEFT JOIN usuarios AS u ON u.id = r.usuario_id\nORDER BY r.created_at DESC\nLIMIT 200;",
-        "options": {}
+        "query": "SELECT r.id, r.description, r.incident_type, r.severity, r.priority, r.status,\n       r.latitude, r.longitude, r.created_at, r.resolved_at,\n       (r.image_url IS NOT NULL) AS tiene_imagen,\n       u.email AS reportado_por\nFROM reports AS r\nLEFT JOIN usuarios AS u ON u.id = r.usuario_id\nWHERE ($1::text IS NULL OR r.usuario_id = $1::int)\nORDER BY r.created_at DESC\nLIMIT 200;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.usuario_id || null] }}"
+        }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
