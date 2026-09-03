@@ -179,7 +179,7 @@ export default function NLQCommandCenter() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent-light)] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-accent)]"></span>
             </span>
-            {session.username}
+            {session.email || session.username}
           </div>
           <button
             onClick={handleLogout}
