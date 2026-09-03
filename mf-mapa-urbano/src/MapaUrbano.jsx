@@ -34,6 +34,7 @@ function crearContenidoPopup(reporte) {
   cont.style.fontSize = '12px';
   cont.style.lineHeight = '1.5';
   cont.style.maxWidth = '240px';
+  cont.style.color = '#1f2937';
 
   const titulo = document.createElement('p');
   titulo.style.fontWeight = '700';
@@ -91,7 +92,7 @@ function crearContenidoPopup(reporte) {
           return;
         }
         const img = document.createElement('img');
-        img.src = fuente.image_url;
+        img.src = fuente.image_url.startsWith('data:') ? fuente.image_url : `data:image/jpeg;base64,${fuente.image_url}`;
         img.alt = 'Fotografía del reporte';
         img.style.width = '100%';
         img.style.borderRadius = '8px';

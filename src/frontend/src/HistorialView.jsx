@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle, RotateCcw, Loader2, AlertTriangle, Search, RefreshCw, MapPin } from 'lucide-react';
+import { getSession } from './session';
 
 const N8N_BASE = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
 
@@ -44,8 +45,10 @@ export default function HistorialView() {
   const [guardandoId, setGuardandoId] = useState(null);
 
   const pedirHistorial = useCallback(async () => {
-    const url = import.meta.env.TE_N8N_REPORTS_HISTORY_URL || `${N8N_BASE}/urbanpulse/reports-history`;
-    const respuesta = await fetch(url);
+    const urlBase = import.meta.env.TE_N8N_REPORTS_HISTORY_URL || `${N8N_BASE}/urbanpulse/reports-history`;
+    const session = getSession();
+    const queryStr = (session && session.role !== 'operador' && session.id) ? `?usuario_id=${session.id}` : '';
+    const respuesta = await fetch(`${urlBase}${queryStr}`);
     if (!respuesta.ok) throw new Error(`El servidor respondió ${respuesta.status}`);
     const texto = await respuesta.text();
     return normalizarLista(texto ? JSON.parse(texto) : []);
