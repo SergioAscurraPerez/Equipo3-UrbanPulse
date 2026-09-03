@@ -4,6 +4,10 @@ import './index.css';
 import { getSession, saveSession, clearSession } from './session';
 import ChatAuthGate from './ChatAuthGate';
 
+// Fallback si TE_N8N_WEBHOOK_URL no está configurada en el entorno de despliegue,
+// igual que en mf-dashboard y mf-mapa-urbano.
+const N8N_CHAT_WEBHOOK_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat';
+
 // Coordenadas de respaldo (Lima) si el navegador no da permiso de geolocalización o no la soporta
 const FALLBACK_LAT = -12.0464;
 const FALLBACK_LON = -77.0428;
@@ -104,8 +108,7 @@ export default function NLQCommandCenter() {
       };
 
       // 5. Conexión segura usando variable de entorno
-      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
-      if (!webhookUrl) throw new Error("Falta TE_N8N_WEBHOOK_URL");
+      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL || N8N_CHAT_WEBHOOK_URL;
 
       const response = await fetch(webhookUrl, {
         method: 'POST',
