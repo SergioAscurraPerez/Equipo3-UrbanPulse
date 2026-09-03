@@ -2,6 +2,9 @@ import { useState, useRef } from 'react';
 import { Send, Camera, Bot, User, MapPin, AlertTriangle, CheckCircle } from 'lucide-react';
 import './index.css';
 
+// Fallback si TE_N8N_WEBHOOK_URL no está configurada en el entorno de despliegue
+const N8N_CHAT_WEBHOOK_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat';
+
 export default function NLQCommandCenter() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -69,7 +72,7 @@ export default function NLQCommandCenter() {
       };
 
       // 5. Conexión segura usando variable de entorno
-      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
+      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL || N8N_CHAT_WEBHOOK_URL;
       if (!webhookUrl) throw new Error("Falta TE_N8N_WEBHOOK_URL");
 
       const response = await fetch(webhookUrl, {

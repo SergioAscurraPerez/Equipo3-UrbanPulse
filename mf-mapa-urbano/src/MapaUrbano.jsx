@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react';
 import tt from '@tomtom-international/web-sdk-maps';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 
+// Fallback si TE_N8N_WEBHOOK_URL no está configurada en el entorno de despliegue
+const N8N_CHAT_WEBHOOK_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat';
+
 const MapaUrbano = ({ lat, lon }) => {
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -52,7 +55,7 @@ const MapaUrbano = ({ lat, lon }) => {
     const fetchReportesUrbanos = async () => {
       try {
         // Validación de seguridad de la variable de entorno
-        const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
+        const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL || N8N_CHAT_WEBHOOK_URL;
         if (!webhookUrl) {
           console.error("Variable TE_N8N_WEBHOOK_URL no configurada en el entorno.");
           return;

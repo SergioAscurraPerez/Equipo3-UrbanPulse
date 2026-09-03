@@ -5,6 +5,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 // Colores para los gráficos (Basados en tu paleta)
 const COLORS = ['#A855F7', '#C084FC', '#6366f1', '#14b8a6'];
 
+// Fallback si TE_N8N_WEBHOOK_URL no está configurada en el entorno de despliegue
+const N8N_CHAT_WEBHOOK_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat';
+
 // 1. SOLUCIÓN AL LINTER: Extraemos el Tooltip fuera del componente principal
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -44,7 +47,7 @@ export default function Dashboard() {
 
     try {
       // TAREA 2: Uso estricto de variables de entorno (Eliminando URL hardcodeada)
-      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
+      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL || N8N_CHAT_WEBHOOK_URL;
 
       if (!webhookUrl) {
         throw new Error("Variable TE_N8N_WEBHOOK_URL no configurada en el entorno.");
