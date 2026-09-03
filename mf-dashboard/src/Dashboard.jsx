@@ -44,10 +44,10 @@ export default function Dashboard() {
 
     try {
       // TAREA 2: Uso estricto de variables de entorno (Eliminando URL hardcodeada)
-      const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
-      
+      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
+
       if (!webhookUrl) {
-        throw new Error("Variable VITE_N8N_WEBHOOK_URL no configurada en el entorno.");
+        throw new Error("Variable TE_N8N_WEBHOOK_URL no configurada en el entorno.");
       }
 
       // 1. CONEXIÓN CON N8N

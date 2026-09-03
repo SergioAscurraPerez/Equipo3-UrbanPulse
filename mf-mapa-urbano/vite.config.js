@@ -15,6 +15,7 @@ export default defineConfig({
       dts: false, // Forzamos a que no busque TypeScript
     }),
   ],
+  envPrefix: ['VITE_', 'TE_'],
   server: {
     port: 5174,
     cors: true,

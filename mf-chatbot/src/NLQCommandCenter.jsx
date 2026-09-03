@@ -69,8 +69,8 @@ export default function NLQCommandCenter() {
       };
 
       // 5. Conexión segura usando variable de entorno
-      const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
-      if (!webhookUrl) throw new Error("Falta VITE_N8N_WEBHOOK_URL");
+      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL;
+      if (!webhookUrl) throw new Error("Falta TE_N8N_WEBHOOK_URL");
 
       const response = await fetch(webhookUrl, {
         method: 'POST',
