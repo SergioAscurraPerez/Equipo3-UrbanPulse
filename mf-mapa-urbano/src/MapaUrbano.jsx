@@ -62,7 +62,12 @@ const MapaUrbano = ({ lat, lon }) => {
         const response = await fetch(webhookUrl);
         const data = await response.json();
 
-        data.forEach(reporte => {
+        // n8n (responseMode: lastNode) devuelve un objeto suelto cuando hay un
+        // único reporte, y un array cuando hay varios. Normalizamos para que
+        // .forEach funcione en los tres casos: 0, 1 o N reportes.
+        const reportes = Array.isArray(data) ? data : (data && data.id ? [data] : []);
+
+        reportes.forEach(reporte => {
           if (reporte.latitude && reporte.longitude) {
             new tt.Marker({ color: INCIDENT_COLORS[reporte.incident_type] || INCIDENT_COLORS.otro })
               .setLngLat([parseFloat(reporte.longitude), parseFloat(reporte.latitude)])
