@@ -26,6 +26,7 @@ services:
       - DB_POSTGRESDB_USER=urban_admin
       - DB_POSTGRESDB_PASSWORD=urban_password_local
       - N8N_CORS_ALLOWED_ORIGINS=http://localhost:3000
+      - N8N_AUTH_SECRET=urbanpulse_dev_secret_local
     ports:
       - "5678:5678"
     depends_on:

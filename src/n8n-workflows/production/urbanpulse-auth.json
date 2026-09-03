@@ -1,0 +1,234 @@
+{
+  "name": "UrbanPulse - Autenticación de Operadores",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "urbanpulse/auth/login",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000001",
+      "name": "Webhook Login",
+      "webhookId": "c4a2b001-1a2b-4c3d-9e4f-100000000001"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, username, password_hash, password_salt, role\nFROM usuarios\nWHERE username = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.username || ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [224, 0],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000002",
+      "name": "Buscar usuario",
+      "credentials": {
+        "postgres": {
+          "id": "Il4alMQXMjgKNxRO",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require('crypto');\nconst filas = $input.all();\nconst body = $('Webhook Login').item.json.body || {};\nconst password = body.password || '';\n\nif (filas.length === 0) {\n  return [{ json: { match: false, username: body.username || null, role: null } }];\n}\n\nconst usuario = filas[0].json;\nconst hashCalculado = crypto.scryptSync(password, usuario.password_salt, 64);\nconst hashAlmacenado = Buffer.from(usuario.password_hash, 'hex');\n\nlet match = false;\nif (hashCalculado.length === hashAlmacenado.length) {\n  match = crypto.timingSafeEqual(hashCalculado, hashAlmacenado);\n}\n\nreturn [{ json: { match, username: usuario.username, role: usuario.role } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000003",
+      "name": "Verificar credenciales"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-match",
+              "leftValue": "={{ $json.match }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [672, 0],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000004",
+      "name": "¿Credenciales válidas?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst { username, role } = $('Verificar credenciales').item.json;\nconst secret = $env.N8N_AUTH_SECRET;\n\nconst now = Date.now();\nconst expiresAt = now + 1000 * 60 * 60 * 12; // 12 horas\n\nconst payload = { sub: username, role, iat: now, exp: expiresAt };\nconst payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');\nconst firma = crypto.createHmac('sha256', secret).update(payloadB64).digest('hex');\nconst token = payloadB64 + '.' + firma;\n\nreturn [{\n  json: {\n    success: true,\n    token,\n    username,\n    role,\n    expires_at: new Date(expiresAt).toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, -100],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000005",
+      "name": "Generar token"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1120, -100],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000006",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: 'Credenciales inválidas' } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [896, 100],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000007",
+      "name": "Responder 401"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 400],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000008",
+      "name": "Crear operador (manual)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "campo-username",
+              "name": "username",
+              "type": "string",
+              "value": "cambiar_usuario"
+            },
+            {
+              "id": "campo-password",
+              "name": "password",
+              "type": "string",
+              "value": "cambiar_password_antes_de_ejecutar"
+            },
+            {
+              "id": "campo-role",
+              "name": "role",
+              "type": "string",
+              "value": "operador"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [224, 400],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000009",
+      "name": "Datos del operador"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst datos = $input.item.json;\nconst salt = crypto.randomBytes(16).toString('hex');\nconst hash = crypto.scryptSync(datos.password, salt, 64).toString('hex');\n\nreturn [{\n  json: {\n    username: datos.username,\n    password_hash: hash,\n    password_salt: salt,\n    role: datos.role || 'operador'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 400],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000010",
+      "name": "Hashear password"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO usuarios (username, password_hash, password_salt, role)\nVALUES ($1, $2, $3, $4)\nON CONFLICT (username) DO NOTHING\nRETURNING id, username, role, created_at;",
+        "options": {
+          "queryReplacement": "={{ [$json.username, $json.password_hash, $json.password_salt, $json.role] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [672, 400],
+      "id": "c4a2b001-1a2b-4c3d-9e4f-000000000011",
+      "name": "Insertar usuario",
+      "credentials": {
+        "postgres": {
+          "id": "Il4alMQXMjgKNxRO",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Login": {
+      "main": [[{ "node": "Buscar usuario", "type": "main", "index": 0 }]]
+    },
+    "Buscar usuario": {
+      "main": [[{ "node": "Verificar credenciales", "type": "main", "index": 0 }]]
+    },
+    "Verificar credenciales": {
+      "main": [[{ "node": "¿Credenciales válidas?", "type": "main", "index": 0 }]]
+    },
+    "¿Credenciales válidas?": {
+      "main": [
+        [{ "node": "Generar token", "type": "main", "index": 0 }],
+        [{ "node": "Responder 401", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generar token": {
+      "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]]
+    },
+    "Crear operador (manual)": {
+      "main": [[{ "node": "Datos del operador", "type": "main", "index": 0 }]]
+    },
+    "Datos del operador": {
+      "main": [[{ "node": "Hashear password", "type": "main", "index": 0 }]]
+    },
+    "Hashear password": {
+      "main": [[{ "node": "Insertar usuario", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d1e2f3a4-b5c6-4d7e-9f8a-000000000001",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "87da3f8e78fcb882965e113f367ca23671053e7a16e0c29ac7502fc383acf47c"
+  },
+  "nodeGroups": [],
+  "id": "UPAuthOperadores01",
+  "tags": []
+}

@@ -13,6 +13,7 @@
 #   - AWS_REGION
 #   - DB_POSTGRESDB_PASSWORD
 #   - N8N_ENCRYPTION_KEY
+#   - N8N_AUTH_SECRET (firma los tokens de sesión del login de operadores)
 # ==============================================================================
 
 name: Deploy n8n to AWS Lightsail
@@ -45,14 +46,17 @@ jobs:
           # caracteres especiales si el secreto los contiene.
           escaped_password=$(printf '%s' "${DB_POSTGRESDB_PASSWORD}" | sed -e 's/[\&|]/\\&/g')
           escaped_key=$(printf '%s' "${N8N_ENCRYPTION_KEY}" | sed -e 's/[\&|]/\\&/g')
+          escaped_auth_secret=$(printf '%s' "${N8N_AUTH_SECRET}" | sed -e 's/[\&|]/\\&/g')
           sed \
             -e "s|__DB_POSTGRESDB_PASSWORD__|${escaped_password}|g" \
             -e "s|__N8N_ENCRYPTION_KEY__|${escaped_key}|g" \
+            -e "s|__N8N_AUTH_SECRET__|${escaped_auth_secret}|g" \
             infrastructure/lightsail-containers.json.template > infrastructure/lightsail-containers.json
           chmod 600 infrastructure/lightsail-containers.json
         env:
           DB_POSTGRESDB_PASSWORD: ${{ secrets.DB_POSTGRESDB_PASSWORD }}
           N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
+          N8N_AUTH_SECRET: ${{ secrets.N8N_AUTH_SECRET }}
 
       - name: Crear deployment en Lightsail Container Service
         run: |
