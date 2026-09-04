@@ -46,4 +46,5 @@ infrastructure/lightsail-containers.json
 *.sln
 postman/collections/*.html
 postman/collections/*resultado*.json
-postman/collections/*.postman_environment.json
+postman/**/*.postman_environment.json
+postman/environments/*.postman_environment.json
