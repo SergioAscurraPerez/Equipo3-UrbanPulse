@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@module-federation/vite": "^1.21.0",
+    "@module-federation/vite": "^1.21.2",
     "@tomtom-international/web-sdk-maps": "^6.25.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
