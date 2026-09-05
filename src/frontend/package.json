@@ -9,7 +9,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.6",
     "@tomtom-international/web-sdk-maps": "^6.25.0",
-    "lucide-react": "^1.35.0",
+    "lucide-react": "^1.39.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "web-vitals": "^6.2.0"
