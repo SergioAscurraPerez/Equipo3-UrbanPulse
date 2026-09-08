@@ -1,0 +1,1 @@
+import{t as e}from"./virtual_mf-exposes___mfe_internal__mf_mapa_urbano__remoteEntry_js-DYzIxnwD.js";export{e as default};

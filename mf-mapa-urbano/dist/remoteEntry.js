@@ -1,0 +1,1 @@
+import{n as e,t}from"./assets/virtual_mf-REMOTE_ENTRY_ID___mfe_internal__mf_mapa_urbano__remoteEntry_js-DtsQ1Fed.js";export{t as get,e as init};
