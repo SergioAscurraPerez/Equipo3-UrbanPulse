@@ -1,0 +1,32 @@
+name: Infrastructure CI (Docker Linter)
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+
+jobs:
+  lint-docker:
+    name: Auditoría de Infraestructura Docker
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Validar sintaxis de Docker Compose
+        # Verifica que el archivo no tenga errores de indentación YAML o estructura
+        run: docker compose -f infrastructure/docker-compose.yml config -q
+
+      - name: Auditoría de Seguridad (CORS en n8n)
+        # Previene el Bug de QA: Verifica que n8n tenga los CORS habilitados
+        run: |
+          echo "Verificando políticas CORS en el contenedor n8n..."
+          if ! grep -q "N8N_CORS_ALLOWED_ORIGINS" infrastructure/docker-compose.yml; then
+            echo "🚨 ERROR: Falta la variable N8N_CORS_ALLOWED_ORIGINS en docker-compose.yml"
+            echo "El frontend no podrá comunicarse con n8n. Corrige el archivo."
+            exit 1
+          else
+            echo "✅ Políticas CORS configuradas correctamente."
+          fi

@@ -1,0 +1,42 @@
+# ==============================================================================
+# Workflow: Health Check AWS (E2E)
+# Propósito: Ejecutar una verificación end-to-end (Frontend -> Webhook n8n -> PostgreSQL)
+# para detectar caídas del servicio en la infraestructura de AWS Lightsail.
+# ==============================================================================
+
+name: Health Check AWS (E2E)
+
+on:
+  schedule:
+    - cron: '0 12,0 * * *' # Ejecuta dos veces al día (12:00 y 00:00)
+  workflow_dispatch:
+
+jobs:
+  verify-deployment:
+    name: Verificar despliegue de la PoC en AWS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Ejecutar verificación end-to-end de la PoC
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: node scripts/verify-poc-deployment.js

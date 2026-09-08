@@ -1,0 +1,121 @@
+# ==============================================================================
+# Workflow: Deploy n8n to AWS Lightsail
+# Propósito: n8n se migró de Render a un Container Service en AWS Lightsail
+#            (servicio: urbanpulse-n8n, región us-east-1). Este workflow genera
+#            la definición de contenedor a partir de
+#            infrastructure/lightsail-containers.json.template, sustituyendo
+#            los placeholders de valores sensibles, y crea un nuevo deployment
+#            en el Container Service cada vez que se hace push a main.
+#
+# Secrets requeridos en GitHub (Settings > Secrets and variables > Actions):
+#   - AWS_ACCESS_KEY_ID
+#   - AWS_SECRET_ACCESS_KEY
+#   - AWS_REGION
+#   - DB_POSTGRESDB_PASSWORD
+#   - N8N_ENCRYPTION_KEY
+#   - N8N_AUTH_SECRET (firma los tokens de sesión del login de operadores)
+# ==============================================================================
+
+name: Deploy n8n to AWS Lightsail
+
+on:
+  push:
+    branches:
+      - main
+
+# Lightsail solo admite un deployment a la vez por servicio: si dos merges a main
+# ocurren seguidos, el segundo falla con "deployment N is in progress". Encolamos
+# los runs en vez de ejecutarlos en paralelo.
+concurrency:
+  group: lightsail-n8n-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Desplegar contenedor n8n en Lightsail
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Generar definición de contenedor con secretos
+        run: |
+          set -euo pipefail
+          # Escapa \, & y el delimitador | para que sed no interprete
+          # caracteres especiales si el secreto los contiene.
+          escaped_password=$(printf '%s' "${DB_POSTGRESDB_PASSWORD}" | sed -e 's/[\&|]/\\&/g')
+          escaped_key=$(printf '%s' "${N8N_ENCRYPTION_KEY}" | sed -e 's/[\&|]/\\&/g')
+          escaped_auth_secret=$(printf '%s' "${N8N_AUTH_SECRET}" | sed -e 's/[\&|]/\\&/g')
+          sed \
+            -e "s|__DB_POSTGRESDB_PASSWORD__|${escaped_password}|g" \
+            -e "s|__N8N_ENCRYPTION_KEY__|${escaped_key}|g" \
+            -e "s|__N8N_AUTH_SECRET__|${escaped_auth_secret}|g" \
+            infrastructure/lightsail-containers.json.template > infrastructure/lightsail-containers.json
+          chmod 600 infrastructure/lightsail-containers.json
+        env:
+          DB_POSTGRESDB_PASSWORD: ${{ secrets.DB_POSTGRESDB_PASSWORD }}
+          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
+          N8N_AUTH_SECRET: ${{ secrets.N8N_AUTH_SECRET }}
+
+      - name: Esperar a que el servicio acepte un nuevo deployment
+        run: |
+          set -euo pipefail
+          # El job de GitHub termina en segundos, pero un deployment de Lightsail
+          # tarda minutos. Si el servicio sigue en DEPLOYING/UPDATING, la API
+          # rechaza el nuevo deployment, así que esperamos a que quede estable.
+          for intento in $(seq 1 40); do
+            estado=$(aws lightsail get-container-services \
+              --service-name urbanpulse-n8n \
+              --query 'containerServices[0].state' --output text)
+            echo "Intento ${intento}: estado del servicio = ${estado}"
+            case "${estado}" in
+              RUNNING|READY|DISABLED)
+                echo "El servicio acepta un nuevo deployment."
+                exit 0
+                ;;
+            esac
+            sleep 15
+          done
+          echo "::error::El servicio sigue ocupado tras 10 minutos de espera."
+          exit 1
+
+      - name: Crear deployment en Lightsail Container Service
+        run: |
+          aws lightsail create-container-service-deployment \
+            --service-name urbanpulse-n8n \
+            --containers file://infrastructure/lightsail-containers.json \
+            --public-endpoint '{"containerName":"n8n","containerPort":5678,"healthCheck":{}}'
+
+      - name: Validar endpoint público de n8n después del deployment
+        run: |
+          set -euo pipefail
+          for intento in $(seq 1 40); do
+            url=$(aws lightsail get-container-services \
+              --service-name urbanpulse-n8n \
+              --query 'containerServices[0].url' \
+              --output text)
+            estado=$(aws lightsail get-container-services \
+              --service-name urbanpulse-n8n \
+              --query 'containerServices[0].state' \
+              --output text)
+            echo "Intento ${intento}/40: estado=${estado}, url=${url}"
+            if [ "${url}" != "None" ] && curl --fail --silent --show-error --max-time 10 "${url}/healthz" > /dev/null; then
+              echo "Health check público de n8n exitoso."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::El endpoint público de n8n no respondió al health check."
+          exit 1
+
+      - name: Limpiar archivo con secretos
+        if: always()
+        run: rm -f infrastructure/lightsail-containers.json
