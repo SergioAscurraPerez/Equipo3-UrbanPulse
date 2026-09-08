@@ -36,7 +36,7 @@ async function pedir(url, cuerpo) {
   try {
     datos = texto ? JSON.parse(texto) : null;
   } catch {
-    datos = null;
+    
   }
 
   if (!datos) {
