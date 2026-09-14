@@ -9,9 +9,12 @@ export default defineConfig({
       name: 'mf_dashboard',
       filename: 'remoteEntry.js',
       exposes: {
-        './Dashboard': './src/Dashboard.jsx', // Este será el archivo que exportaremos
+        './Dashboard': './src/Dashboard.jsx',
       },
-      shared: ['react', 'react-dom'],
+      shared: {
+        'react': { singleton: true, requiredVersion: '^19.2.8', eager: true },
+        'react-dom': { singleton: true, requiredVersion: '^19.2.8', eager: true },
+      },
       dts: false,
     }),
   ],

@@ -5,6 +5,8 @@ import { getInitialTheme, applyTheme } from './theme';
 import { getSession, clearSession, subscribeSession } from './session';
 import HistorialView from './HistorialView';
 import AjustesView from './AjustesView';
+import LoginView from './LoginView';
+import OperatorPlaceholderView from './OperatorPlaceholderView';
 
 // Importaciones de los micro-fronteds
 const MapaUrbano = React.lazy(() => import('mf_mapa_urbano/MapaUrbano'));
@@ -26,6 +28,8 @@ function App() {
 
   // El historial es privado: si la sesión caduca o se cierra estando en esa
   // vista, no puede quedarse mostrando los reportes de quien acaba de salir.
+  // El historial, dashboard y ajustes requieren sesión; si no hay, mostramos el login en esa misma pestaña
+  const requiereLogin = !session && ['dashboard', 'historial'].includes(activeTab);
   const vistaActiva = (!session && activeTab === 'historial') ? 'inicio' : activeTab;
 
   const toggleTheme = () => {
@@ -33,15 +37,41 @@ function App() {
   };
 
   // Configuración del menú lateral. Mapa y dashboard son públicos; el historial
-  // solo aparece con sesión iniciada porque muestra los reportes propios.
-  const menuItems = [
-    { id: 'inicio', label: 'INICIO', icon: Home },
-    { id: 'chat', label: 'CHAT', icon: MessageSquare },
-    { id: 'mapa', label: 'MAPA', icon: MapIcon },
-    { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
-    ...(session ? [{ id: 'historial', label: 'HISTORIAL', icon: History }] : []),
-    { id: 'ajustes', label: 'AJUSTES', icon: Settings },
-  ];
+// Configuración del menú lateral dinámico según el rol y la sesión
+  let menuItems = [];
+
+  if (!session) {
+    // Visitante anónimo
+    menuItems = [
+      { id: 'inicio', label: 'INICIO', icon: Home },
+      { id: 'chat', label: 'CHAT', icon: MessageSquare },
+      { id: 'mapa', label: 'MAPA', icon: MapIcon },
+      { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+      { id: 'ajustes', label: 'AJUSTES', icon: Settings },
+    ];
+  } else if (session.role === 'operador' || session.rol === 'operador') {
+    // OPERADOR: Menú especializado de gestión urbana
+    menuItems = [
+      { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+      { id: 'mapa', label: 'MAPA', icon: MapIcon },
+      { id: 'incidentes', label: 'GESTIÓN DE INCIDENTES', icon: Activity },
+      { id: 'riesgo', label: 'PREDICCIÓN DE RIESGO', icon: Activity },
+      { id: 'operativos', label: 'GESTIÓN DE OPERATIVOS', icon: Activity },
+      { id: 'metricas', label: 'MÉTRICAS Y REPORTES', icon: Activity },
+      { id: 'perfil', label: 'PERFIL', icon: User },
+      { id: 'ajustes', label: 'AJUSTES', icon: Settings },
+    ];
+  } else {
+    // Ciudadano autenticado
+    menuItems = [
+      { id: 'inicio', label: 'INICIO', icon: Home },
+      { id: 'chat', label: 'CHAT', icon: MessageSquare },
+      { id: 'mapa', label: 'MAPA', icon: MapIcon },
+      { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
+      { id: 'historial', label: 'HISTORIAL', icon: History },
+      { id: 'ajustes', label: 'AJUSTES', icon: Settings },
+    ];
+  }
 
   return (
     <div className="flex h-screen overflow-hidden font-sans bg-[var(--color-bg-app)] text-[var(--color-text-primary)]">
@@ -133,104 +163,156 @@ function App() {
       {/* ÁREA DE CONTENIDO PRINCIPAL */}
       <main className="flex-1 relative overflow-hidden bg-[var(--color-bg-app)]">
         
-        {/* VISTA: INICIO (Landing) */}
-        {vistaActiva === 'inicio' && (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in overflow-y-auto">
-            <div className="p-4 bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] mb-6 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-              <Activity size={48} className="text-[var(--color-accent)]" />
-            </div>
-            <h1 className="text-4xl font-bold mb-3 tracking-tight">
-              URBAN<span className="text-[var(--color-accent)]">PULSE</span>
-            </h1>
-            <p className="text-[var(--color-text-secondary)] max-w-lg text-lg leading-relaxed mb-3">
-              Sistema predictivo de incidentes urbanos impulsado por Inteligencia Artificial.
-            </p>
-            <span className="text-xs text-[var(--color-accent)] flex items-center gap-1.5 mb-10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
-              Sistema En Línea
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">
-              {[
-                { id: 'chat', label: 'Chat', desc: 'Reporta un incidente conversando con el agente de IA.', icon: MessageSquare },
-                { id: 'mapa', label: 'Mapa', desc: 'Visualiza incidentes y congestión en tiempo real.', icon: MapIcon },
-                { id: 'dashboard', label: 'Dashboard', desc: 'Revisa KPIs y tendencias de la ciudad.', icon: LayoutDashboard },
-              ].map(({ id, label, desc, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className="flex flex-col items-start text-left gap-3 p-5 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 hover:-translate-y-0.5 transition-all"
-                >
-                  <div className="p-2 bg-[var(--color-panel)] rounded-lg border border-[var(--color-border)] text-[var(--color-accent)]">
-                    <Icon size={20} />
-                  </div>
-                  <span className="font-bold text-[var(--color-text-primary)]">{label}</span>
-                  <span className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* VISTA: CHAT (Ahora renderizado como Micro-Frontend Federado) */}
-        {vistaActiva === 'chat' && (
+        {requiereLogin ? (
           <div className="h-full w-full animate-fade-in">
-            <Suspense fallback={
-              <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                <MessageSquare size={40} className="mb-4 animate-pulse opacity-50" />
-                Inicializando Agente Conversacional...
-              </div>
-            }>
-              <Chatbot />
-            </Suspense>
+            <LoginView />
           </div>
-        )}
-
-        {/* VISTA: DASHBOARD */}
-        {vistaActiva === 'dashboard' && (
-          <div className="h-full overflow-y-auto p-8 animate-fade-in">
-            <Suspense fallback={
-              <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
-                Conectando con el panel analítico...
-              </div>
-            }>
-              <Dashboard />
-            </Suspense>
-          </div>
-        )}
-
-        {/* VISTA: MAPA */}
-        {vistaActiva === 'mapa' && (
-          <div className="h-full w-full p-6 animate-fade-in">
-            <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg shadow-[#000000]/50 relative">
-              <Suspense fallback={
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-accent)] bg-[var(--color-card)]">
-                  <MapIcon size={40} className="mb-4 animate-pulse opacity-50" />
-                  Cargando topología...
+        ) : (
+          <>
+            {/* VISTA: INICIO (Landing) */}
+            {vistaActiva === 'inicio' && (
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-fade-in overflow-y-auto">
+                <div className="p-4 bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] mb-6 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+                  <Activity size={48} className="text-[var(--color-accent)]" />
                 </div>
-              }>
-                <MapaUrbano />
-              </Suspense>
-            </div>
-          </div>
-        )}
+                <h1 className="text-4xl font-bold mb-3 tracking-tight">
+                  URBAN<span className="text-[var(--color-accent)]">PULSE</span>
+                </h1>
+                <p className="text-[var(--color-text-secondary)] max-w-lg text-lg leading-relaxed mb-3">
+                  Sistema predictivo de incidentes urbanos impulsado por Inteligencia Artificial.
+                </p>
+                <span className="text-xs text-[var(--color-accent)] flex items-center gap-1.5 mb-10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
+                  Sistema En Línea
+                </span>
 
-        {/* VISTA: HISTORIAL */}
-        {vistaActiva === 'historial' && (
-          <div className="h-full animate-fade-in">
-            <HistorialView session={session} />
-          </div>
-        )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+                  {[
+                    { id: 'chat', label: 'Chat', desc: 'Reporta un incidente conversando con el agente de IA.', icon: MessageSquare },
+                    { id: 'mapa', label: 'Mapa', desc: 'Visualiza incidentes y congestión en tiempo real.', icon: MapIcon },
+                    { id: 'dashboard', label: 'Dashboard', desc: 'Revisa KPIs y tendencias de la ciudad.', icon: LayoutDashboard },
+                  ].map(({ id, label, desc, icon: Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => setActiveTab(id)}
+                      className="flex flex-col items-start text-left gap-3 p-5 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 hover:-translate-y-0.5 transition-all"
+                    >
+                      <div className="p-2 bg-[var(--color-panel)] rounded-lg border border-[var(--color-border)] text-[var(--color-accent)]">
+                        <Icon size={20} />
+                      </div>
+                      <span className="font-bold text-[var(--color-text-primary)]">{label}</span>
+                      <span className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* VISTA: AJUSTES */}
-        {vistaActiva === 'ajustes' && (
-          <div className="h-full animate-fade-in">
-            <AjustesView theme={theme} onCambiarTema={setTheme} />
-          </div>
+            {/* VISTA: CHAT (Micro-Frontend Federado) */}
+            {vistaActiva === 'chat' && (
+              <div className="h-full w-full animate-fade-in">
+                <Suspense fallback={
+                  <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                    <MessageSquare size={40} className="mb-4 animate-pulse opacity-50" />
+                    Inicializando Agente Conversacional...
+                  </div>
+                }>
+                  <Chatbot />
+                </Suspense>
+              </div>
+            )}
+
+            {/* VISTA: DASHBOARD */}
+            {vistaActiva === 'dashboard' && (
+              <div className="h-full overflow-y-auto p-8 animate-fade-in">
+                <Suspense fallback={
+                  <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                    <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
+                    Conectando con el panel analítico...
+                  </div>
+                }>
+                  <Dashboard />
+                </Suspense>
+              </div>
+            )}
+
+            {/* VISTA: MAPA */}
+            {vistaActiva === 'mapa' && (
+              <div className="h-full w-full p-6 animate-fade-in">
+                <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg shadow-[#000000]/50 relative">
+                  <Suspense fallback={
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-accent)] bg-[var(--color-card)]">
+                      <MapIcon size={40} className="mb-4 animate-pulse opacity-50" />
+                      Cargando topología...
+                    </div>
+                  }>
+                    <MapaUrbano />
+                  </Suspense>
+                </div>
+              </div>
+            )}
+
+            {/* VISTA: HISTORIAL */}
+            {vistaActiva === 'historial' && (
+              <div className="h-full animate-fade-in">
+                <HistorialView session={session} />
+              </div>
+            )}
+
+            {/* VISTA: AJUSTES */}
+            {vistaActiva === 'ajustes' && (
+              <div className="h-full animate-fade-in">
+                <AjustesView theme={theme} onCambiarTema={setTheme} />
+              </div>
+            )}
+            {/* VISTAS DE OPERADOR */}
+            {vistaActiva === 'incidentes' && (
+              <div className="h-full animate-fade-in">
+                <OperatorPlaceholderView 
+                  titulo="Gestión de Incidentes" 
+                  descripcion="Monitoreo, validación y cambio de estado de reportes ciudadanos en tiempo real." 
+                />
+              </div>
+            )}
+
+            {vistaActiva === 'riesgo' && (
+              <div className="h-full animate-fade-in">
+                <OperatorPlaceholderView 
+                  titulo="Predicción de Riesgo" 
+                  descripcion="Modelos predictivos y zonas de calor basadas en machine learning para patrullaje preventivo." 
+                />
+              </div>
+            )}
+
+            {vistaActiva === 'operativos' && (
+              <div className="h-full animate-fade-in">
+                <OperatorPlaceholderView 
+                  titulo="Gestión de Operativos" 
+                  descripcion="Asignación de unidades móviles y personal de campo a zonas críticas de la ciudad." 
+                />
+              </div>
+            )}
+
+            {vistaActiva === 'metricas' && (
+              <div className="h-full animate-fade-in">
+                <OperatorPlaceholderView 
+                  titulo="Métricas y Reportes" 
+                  descripcion="Exportación de datos estadísticos mensuales y KPIs de respuesta institucional." 
+                />
+              </div>
+            )}
+
+            {vistaActiva === 'perfil' && (
+              <div className="h-full animate-fade-in">
+                <OperatorPlaceholderView 
+                  titulo="Perfil de Operador" 
+                  descripcion={`Sesión activa: ${session?.email || session?.username} (Rol: Operador Municipal)`} 
+                />
+              </div>
+            )}
+          </>
         )}
       </main>
-
     </div>
   );
 }

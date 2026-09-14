@@ -4,6 +4,12 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// 1. IMPORTAMOS EL INTERCEPTOR
+import { setupFetchInterceptor } from './fetchInterceptor'; 
+
+// 2. ENCENDEMOS EL ESCUDO ANTES DE QUE ARRANQUE REACT
+setupFetchInterceptor();
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
