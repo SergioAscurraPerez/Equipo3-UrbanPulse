@@ -5,10 +5,10 @@ import { federation } from '@module-federation/vite';
 const PROD_REMOTE_MF_DASHBOARD_URL = 'https://equipo3-urban-pulse-jti7.vercel.app/remoteEntry.js';
 const PROD_REMOTE_MF_MAPA_URBANO_URL = 'https://equipo3-urban-pulse-e9i8.vercel.app/remoteEntry.js';
 const PROD_REMOTE_MF_CHATBOT_URL = 'https://equipo3-urban-pulse-jbf3.vercel.app/remoteEntry.js';
-const PROD_REMOTE_MF_GESTION_INCIDENTES_URL = 'https://equipo3-urban-pulse-gestion.vercel.app/remoteEntry.js';
-const PROD_REMOTE_MF_HISTORIAL_REPORTES_URL = 'https://equipo3-urban-pulse-historial.vercel.app/remoteEntry.js';
+const PROD_REMOTE_MF_GESTION_INCIDENTES_URL = 'https://equipo3-urban-pulse-gestion-inciden.vercel.app/remoteEntry.js';
+const PROD_REMOTE_MF_HISTORIAL_REPORTES_URL = 'https://equipo3-urban-pulse-historial-repor.vercel.app/remoteEntry.js';
 const PROD_REMOTE_MF_AUTH_URL = 'https://equipo3-urban-pulse-auth.vercel.app/remoteEntry.js';
-const PROD_REMOTE_MF_AJUSTES_URL = 'https://equipo3-urban-pulse-ajustes.vercel.app/remoteEntry.js'; 
+const PROD_REMOTE_MF_AJUSTES_URL = 'https://equipo3-urban-pulse-ajustes-pi.vercel.app/remoteEntry.js'; 
 
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
