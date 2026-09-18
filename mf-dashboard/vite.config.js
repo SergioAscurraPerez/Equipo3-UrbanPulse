@@ -9,13 +9,23 @@ export default defineConfig({
       name: 'mf_dashboard',
       filename: 'remoteEntry.js',
       exposes: {
-        './Dashboard': './src/Dashboard.jsx', // Este será el archivo que exportaremos
+        './Dashboard': './src/Dashboard.jsx',
       },
       shared: {
-        react: { singleton: true },
-        'react-dom': { singleton: true },
-        'react/jsx-runtime': { singleton: true },
-        'react/jsx-dev-runtime': { singleton: true },
+        react: { 
+          singleton: true, 
+          requiredVersion: '^19.2.8' 
+        },
+        'react-dom': { 
+          singleton: true, 
+          requiredVersion: '^19.2.8' 
+        },
+        'react/jsx-runtime': { 
+          singleton: true 
+        },
+        'react/jsx-dev-runtime': { 
+          singleton: true 
+        },
       },
       dts: false,
     }),
@@ -25,10 +35,14 @@ export default defineConfig({
     port: 5175,
     cors: true,
   },
+  preview: {
+    port: 5175,
+    cors: true,
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
   build: {
     target: 'esnext',
-  }
+  },
 });

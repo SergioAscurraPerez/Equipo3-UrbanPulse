@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Bot, Lock, Mail, Loader2, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Activity, Lock, Mail, Loader2, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { saveSession } from './session';
+import './index.css';
 
 const N8N_BASE = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
 
@@ -32,11 +34,12 @@ async function pedir(url, cuerpo) {
   });
 
   const texto = await respuesta.text();
+  
   let datos;
   try {
     datos = texto ? JSON.parse(texto) : null;
   } catch {
-    throw new Error(`El servidor de autenticación respondió con JSON inválido (HTTP ${respuesta.status}).`);
+    datos = null;
   }
 
   if (!datos) {
@@ -48,17 +51,17 @@ async function pedir(url, cuerpo) {
 
 function Campo({ icono: Icono, ...props }) {
   return (
-    <div className="relative">
-      <Icono size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
+    <div className="flex items-center gap-3 bg-[var(--color-bg-app)] border border-[var(--color-border)] rounded-xl px-4 focus-within:border-[var(--color-accent)] focus-within:ring-1 focus-within:ring-[var(--color-accent)] transition-all">
+      <Icono size={18} className="text-[var(--color-text-secondary)] shrink-0" />
       <input
         {...props}
-        className="w-full bg-[var(--color-bg-app)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] pl-10 pr-4 py-3 rounded-xl border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all"
+        className="w-full bg-transparent text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] py-3 focus:outline-none"
       />
     </div>
   );
 }
 
-export default function ChatAuthGate({ onAuth }) {
+export default function LoginView() {
   const tokenInicial = tokenDeLaUrl();
 
   const [modo, setModo] = useState(tokenInicial ? 'reset' : 'login');
@@ -133,7 +136,9 @@ export default function ChatAuthGate({ onAuth }) {
         throw new Error(datos.error || 'Correo o contraseña incorrectos.');
       }
 
-      onAuth(datos);
+      // Guardamos la sesión exitosa. Esto dispara el evento urbanpulse:sesion
+      // y App.jsx se enterará automáticamente para ocultar este LoginView.
+      saveSession(datos);
     } catch (err) {
       setError(err.message || 'No se pudo conectar con el servidor de autenticación.');
     } finally {
@@ -142,8 +147,8 @@ export default function ChatAuthGate({ onAuth }) {
   };
 
   const titulos = {
-    login: 'Para reportar un incidente, inicia sesión',
-    register: 'Crea tu cuenta para reportar',
+    login: 'Inicia sesión para continuar',
+    register: 'Crea tu cuenta en UrbanPulse',
     forgot: 'Recuperar contraseña',
     reset: 'Define tu nueva contraseña',
   };
@@ -160,13 +165,13 @@ export default function ChatAuthGate({ onAuth }) {
       <div className="w-full max-w-sm py-8">
         <div className="flex flex-col items-center mb-6">
           <div className="p-3 bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] mb-4 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-            <Bot size={32} className="text-[var(--color-accent)]" />
+            <Activity size={32} className="text-[var(--color-accent)]" />
           </div>
           <h1 className="text-xl font-bold text-center">{titulos[modo]}</h1>
           <p className="text-[var(--color-text-secondary)] text-sm mt-1 text-center">
             {modo === 'forgot'
               ? 'Te daremos un enlace para definir una contraseña nueva.'
-              : 'Así podemos asociar tu reporte a tu cuenta y darte seguimiento.'}
+              : 'Accede a tu panel, historial y herramientas de análisis de la ciudad.'}
           </p>
         </div>
 
@@ -190,7 +195,7 @@ export default function ChatAuthGate({ onAuth }) {
           </div>
         )}
 
-        <form onSubmit={enviar} noValidate className="space-y-4 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6">
+        <form onSubmit={enviar} className="space-y-4 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6">
           {modo !== 'reset' && (
             <Campo
               icono={Mail}

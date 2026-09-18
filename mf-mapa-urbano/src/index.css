@@ -1,25 +1,48 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --color-bg-app: #0A0A0D;
-  --color-panel: #121218;
-  --color-card: #1B1B24;
-  --color-border: #30303D;
-  --color-text-primary: #F4F4F5;
-  --color-text-secondary: #A1A1AA;
-  --color-accent: #A855F7;
-  --color-accent-light: #C084FC;
+@import "tailwindcss";
+.mapboxgl-popup {
+  max-width: 320px !important;
+  z-index: 40 !important;
 }
 
-:root.light {
-  --color-bg-app: #F4F4F5;
-  --color-panel: #FFFFFF;
-  --color-card: #F8F7FA;
-  --color-border: #E4E4E7;
-  --color-text-primary: #18181B;
-  --color-text-secondary: #52525B;
-  --color-accent: #9333EA;
-  --color-accent-light: #A855F7;
+.mapboxgl-popup-content {
+  padding: 0 !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18), 0 10px 10px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #e2e8f0 !important;
+  overflow: hidden !important;
+}
+
+/* Reubicar y estilizar el botón de cerrar (x) nativo */
+.mapboxgl-popup-close-button {
+  top: 10px !important;
+  right: 10px !important;
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  color: #64748b !important;
+  background: #f1f5f9 !important;
+  border-radius: 9999px !important;
+  border: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: all 0.15s ease-in-out !important;
+  z-index: 50 !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  border-top-color: #ffffff !important;
+}
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+  border-bottom-color: #ffffff !important;
 }
