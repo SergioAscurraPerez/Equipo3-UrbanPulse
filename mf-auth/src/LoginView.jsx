@@ -41,6 +41,12 @@ async function pedir(url, cuerpo) {
   } catch {
     datos = null;
   }
+  if (!respuesta.ok) {
+    const mensajeError = (datos && datos.error) 
+      ? datos.error 
+      : `Error de autenticación (HTTP ${respuesta.status})`;
+    throw new Error(mensajeError);
+  }
 
   if (!datos) {
     throw new Error(`El servidor de autenticación respondió vacío (HTTP ${respuesta.status}). Revisa que el workflow de n8n esté activo.`);
