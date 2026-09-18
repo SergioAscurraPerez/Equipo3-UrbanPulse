@@ -11,8 +11,8 @@ node_modules
 dist
 dist-ssr
 .env
-.env.local
-*.local
+.env.*
+!.env.example
 
 # este proyecto usa npm (package-lock.json); ignorar artefactos de pnpm
 pnpm-lock.yaml
