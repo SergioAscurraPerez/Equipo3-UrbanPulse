@@ -3,6 +3,7 @@ import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 export default [
+  { ignores: ["dist"] },
   js.configs.recommended,
   {
     files: ["**/*.jsx", "**/*.js"],

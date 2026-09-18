@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Bot, Lock, Mail, Loader2, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
+import './index.css';
 
 const N8N_BASE = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
 
@@ -48,16 +49,15 @@ async function pedir(url, cuerpo) {
 
 function Campo({ icono: Icono, ...props }) {
   return (
-    <div className="relative">
-      <Icono size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
+    <div className="flex items-center gap-3 bg-[var(--color-bg-app)] border border-[var(--color-border)] rounded-xl px-4 focus-within:border-[var(--color-accent)] focus-within:ring-1 focus-within:ring-[var(--color-accent)] transition-all">
+      <Icono size={18} className="text-[var(--color-text-secondary)] shrink-0" />
       <input
         {...props}
-        className="w-full bg-[var(--color-bg-app)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] pl-10 pr-4 py-3 rounded-xl border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-all"
+        className="w-full bg-transparent text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] py-3 focus:outline-none"
       />
     </div>
   );
 }
-
 export default function ChatAuthGate({ onAuth }) {
   const tokenInicial = tokenDeLaUrl();
 

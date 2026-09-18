@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, MapPin, Wifi, WifiOff, Loader2, LogOut, User, RefreshCw } from 'lucide-react';
 import { getSession, clearSession, subscribeSession } from './session';
-
+import './index.css';
 const N8N_BASE = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
 
 function Seccion({ titulo, descripcion, children }) {
