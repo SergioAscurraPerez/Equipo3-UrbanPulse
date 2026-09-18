@@ -12,6 +12,12 @@
 # postman/data/payloads.csv (una iteracion por fila: nulos, vacios, fuera de
 # rango, SQL injection y buffer overflow). La carpeta "2. Smoke test" corre
 # una sola vez sin data file para confirmar el camino feliz.
+#
+# Sin autenticacion: el equipo confirmo que no hay una API key de "Maps API"
+# utilizable hoy, asi que las requests no envian ningun header de auth. Si
+# mas adelante se habilita esa credencial en n8n, hay que volver a agregar el
+# header en 'scripts/build-geojson-adversarial-collection.mjs' y los secrets
+# MAPS_API_KEY_HEADER / MAPS_API_KEY_VALUE aqui.
 # ==============================================================================
 
 name: Pruebas QA - Robustez de Endpoints GeoJSON (Newman)
@@ -40,16 +46,12 @@ jobs:
         env:
           N8N_GEOJSON_ONSV_URL: ${{ secrets.N8N_GEOJSON_ONSV_URL }}
           N8N_GEOJSON_SUTRAN_URL: ${{ secrets.N8N_GEOJSON_SUTRAN_URL }}
-          MAPS_API_KEY_HEADER: ${{ secrets.MAPS_API_KEY_HEADER }}
-          MAPS_API_KEY_VALUE: ${{ secrets.MAPS_API_KEY_VALUE }}
         run: |
           newman run "postman/collections/urbanpulse-geojson-adversarial.postman_collection.json" \
             --folder "1. Casos adversariales (data-driven via payloads.csv)" \
             -d postman/data/payloads.csv \
             --env-var "n8n_geojson_onsv_url=$N8N_GEOJSON_ONSV_URL" \
             --env-var "n8n_geojson_sutran_url=$N8N_GEOJSON_SUTRAN_URL" \
-            --env-var "maps_api_key_header=$MAPS_API_KEY_HEADER" \
-            --env-var "maps_api_key_value=$MAPS_API_KEY_VALUE" \
             --reporters cli,htmlextra \
             --reporter-htmlextra-export newman-report/geojson-adversarial-report.html
 
@@ -58,15 +60,11 @@ jobs:
         env:
           N8N_GEOJSON_ONSV_URL: ${{ secrets.N8N_GEOJSON_ONSV_URL }}
           N8N_GEOJSON_SUTRAN_URL: ${{ secrets.N8N_GEOJSON_SUTRAN_URL }}
-          MAPS_API_KEY_HEADER: ${{ secrets.MAPS_API_KEY_HEADER }}
-          MAPS_API_KEY_VALUE: ${{ secrets.MAPS_API_KEY_VALUE }}
         run: |
           newman run "postman/collections/urbanpulse-geojson-adversarial.postman_collection.json" \
             --folder "2. Smoke test (camino feliz, sin CSV)" \
             --env-var "n8n_geojson_onsv_url=$N8N_GEOJSON_ONSV_URL" \
             --env-var "n8n_geojson_sutran_url=$N8N_GEOJSON_SUTRAN_URL" \
-            --env-var "maps_api_key_header=$MAPS_API_KEY_HEADER" \
-            --env-var "maps_api_key_value=$MAPS_API_KEY_VALUE" \
             --reporters cli,htmlextra \
             --reporter-htmlextra-export newman-report/geojson-smoke-report.html
 

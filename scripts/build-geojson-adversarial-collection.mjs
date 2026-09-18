@@ -27,6 +27,13 @@ import { writeFileSync } from "node:fs";
 // que ya hacen 'urbanpulse-llm-robustness' (GAP HT-27/HT-30). Cuando el
 // backend valide eps/minpoints y devuelva {error, message} con 400/422,
 // estas pruebas deben pasar sin cambios.
+//
+// Sin autenticacion: al momento de escribir esto, el equipo confirmo que no
+// existe una API key de "Maps API" utilizable (la credencial headerAuth del
+// workflow n8n no esta configurada/disponible). Las requests no envian
+// ningun header de autenticacion; si mas adelante se habilita la credencial,
+// agregar de nuevo el header aqui y las variables de entorno correspondientes
+// en el workflow de CI.
 
 const leakedWordsCheck = `
 const bodyText = pm.response.text();
@@ -90,9 +97,7 @@ function geojsonRequest(name, url, testScript) {
     ],
     request: {
       method: "GET",
-      header: [
-        { key: "{{maps_api_key_header}}", value: "{{maps_api_key_value}}" },
-      ],
+      header: [],
       url: { raw: url, host: [url] },
     },
     response: [],
@@ -143,9 +148,7 @@ const smoke = {
       ],
       request: {
         method: "GET",
-        header: [
-          { key: "{{maps_api_key_header}}", value: "{{maps_api_key_value}}" },
-        ],
+        header: [],
         url: {
           raw: "{{n8n_geojson_onsv_url}}?eps=0.01&minpoints=3",
           host: ["{{n8n_geojson_onsv_url}}?eps=0.01&minpoints=3"],
@@ -174,9 +177,7 @@ const smoke = {
       ],
       request: {
         method: "GET",
-        header: [
-          { key: "{{maps_api_key_header}}", value: "{{maps_api_key_value}}" },
-        ],
+        header: [],
         url: { raw: "{{n8n_geojson_sutran_url}}", host: ["{{n8n_geojson_sutran_url}}"] },
       },
       response: [],

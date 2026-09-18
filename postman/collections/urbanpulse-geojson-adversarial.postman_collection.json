@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "f6ce27d7-9c0f-4c61-b944-8e38984ac377",
+    "_postman_id": "9cd7fddf-f53d-4bca-9cb8-337f0639b73c",
     "name": "UrbanPulse - Adversarial GeoJSON (HT-29 T01)",
     "description": "Coleccion Newman de HT-29 T01. Certifica que los endpoints GeoJSON de Open Data de HT-26 (GET {{n8n_geojson_onsv_url}} y GET {{n8n_geojson_sutran_url}}, definidos en 'src/n8n-workflows/production/UrbanPulse - Dashboard KPIs vr2.json') rechazan payloads maliciosos sin caerse ni filtrar informacion sensible (stack traces, 'neon', 'postgres'). La carpeta 1 se corre con 'newman run ... -d postman/data/payloads.csv' (una iteracion por fila: coordenadas/valores nulos, vacios, fuera de rango, SQL injection y buffer overflow de 10000 caracteres). La carpeta 2 es un smoke test de camino feliz sin data file.\n\nGAP conocido: el ticket original describe filtros lat/lng y 'distrito' que HT-26 todavia no expone (los unicos query params reales son eps/minpoints en ONSV; SUTRAN no acepta ninguno). Los casos se adaptaron a los parametros reales -- ver comentarios en 'scripts/build-geojson-adversarial-collection.mjs'. Se espera que varias pruebas [GAP HT-26] fallen hoy porque el workflow aun no valida entrada ni homogeneiza errores; sirven para dejar constancia del gap hasta que se implemente.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -59,12 +59,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "{{maps_api_key_header}}",
-                "value": "{{maps_api_key_value}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{n8n_geojson_onsv_url}}?eps={{eps_enc}}&minpoints={{minpoints_enc}}&distrito={{distrito_enc}}",
               "host": [
@@ -124,12 +119,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "{{maps_api_key_header}}",
-                "value": "{{maps_api_key_value}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{n8n_geojson_sutran_url}}?distrito={{distrito_enc}}",
               "host": [
@@ -157,12 +147,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "{{maps_api_key_header}}",
-                "value": "{{maps_api_key_value}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{n8n_geojson_onsv_url}}?eps=0.01&minpoints=3",
               "host": [
@@ -185,12 +170,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "{{maps_api_key_header}}",
-                "value": "{{maps_api_key_value}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{n8n_geojson_sutran_url}}",
               "host": [
