@@ -256,7 +256,7 @@ const MapaUrbano = ({ lat, lon }) => {
 
   // 1. Inicializar mapa TomTom
   useEffect(() => {
-    const tomtomKey = import.meta.env.TE_TOMTOM_API_KEY;
+    const tomtomKey = import.meta.env.VITE_TOMTOM_API_KEY;
     if (!tomtomKey || !mapContainer.current) return undefined;
 
     const estilo = ESTILOS_MAPA[temaActual()];
