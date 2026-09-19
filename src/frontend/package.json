@@ -44,7 +44,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.23.0",
+    "@babel/preset-env": "^8.0.5",
     "@babel/preset-react": "^7.23.0",
     "@module-federation/vite": "^1.21.5",
     "@vitejs/plugin-react": "^6.1.1",
