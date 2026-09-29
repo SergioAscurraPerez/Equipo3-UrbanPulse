@@ -6,6 +6,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+
+    vercel = {
+      source  = "vercel/vercel"
+      version = "~> 5.17"
+    }
   }
 
   backend "s3" {
@@ -20,3 +25,6 @@ terraform {
 provider "aws" {
   region = var.aws_region
 }
+
+# El token se lee de la variable de entorno VERCEL_API_TOKEN (cuenta personal, sin team_id).
+provider "vercel" {}
