@@ -30,9 +30,6 @@ jobs:
         languages: ${{ matrix.language }}
         queries: security-extended,security-and-quality
 
-    - name: Análisis Automático
-      uses: github/codeql-action/autobuild@v4
-
     - name: Ejecutar Escáner CodeQL
       uses: github/codeql-action/analyze@v3
       with:
