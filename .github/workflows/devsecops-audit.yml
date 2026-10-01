@@ -48,7 +48,7 @@ jobs:
 
       - name: Subir Reporte Oficial como Artefacto
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-auditoria-devsecops-sprint2
           path: docs/SECURITY_COMPLIANCE_AUDIT_REPORT.md
