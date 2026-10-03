@@ -1,5 +1,5 @@
 {
-  "name": "mf-chatbot",
+  "name": "mf-panel-riesgo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,8 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@urbanpulse/shared": "file:../packages/shared",
-    "lucide-react": "^1.50.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
@@ -19,15 +17,13 @@
     "@eslint/js": "^10.0.1",
     "@module-federation/vite": "^1.23.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.0",
-    "autoprefixer": "^10.6.1",
-    "eslint": "^10.11.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.7",
+    "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
-    "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.2"
   }

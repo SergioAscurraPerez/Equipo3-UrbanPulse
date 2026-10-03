@@ -9,11 +9,12 @@ import {
   CheckCircle2,
   Clock,
 } from 'lucide-react';
-import { getSession } from './session';
 import './index.css';
 
-const N8N_BASE =
-  'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
+// ✨ NUEVO 1: Importamos desde el módulo compartido
+import { getSession, fetchN8n } from '@urbanpulse/shared';
+
+// ✨ NUEVO 2: Borramos N8N_BASE porque fetchN8n ya maneja las URLs dinámicamente
 
 const COLORES_TIPO = {
   infraestructura_vial: '#F59E0B',
@@ -41,7 +42,6 @@ const COLORES_SEVERIDAD = {
   baja: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
 };
 
-// Configuración visual por estado
 const CONFIG_ESTADO = {
   resuelto: {
     etiqueta: 'Resuelto',
@@ -82,7 +82,6 @@ export default function HistorialView({ session: sesionProp }) {
 
   const usuarioId = (sesionProp || getSession() || {}).id || null;
 
-  // React Query con auto-sincronización y revalidación automática
   const {
     data: reportes = [],
     isLoading: cargando,
@@ -96,33 +95,18 @@ export default function HistorialView({ session: sesionProp }) {
         throw new Error('Inicia sesión para ver tu historial de reportes.');
       }
 
-      const urlBase =
-        import.meta.env.VITE_N8N_REPORTS_HISTORY_URL ||
-        `${N8N_BASE}/urbanpulse/reports-history`;
-
-      const respuesta = await fetch(
-        `${urlBase}?usuario_id=${encodeURIComponent(usuarioId)}`
-      );
-
-      if (!respuesta.ok) {
-        throw new Error(`El servidor respondió ${respuesta.status}`);
-      }
-
-      const texto = await respuesta.text();
-      if (!texto) return [];
-
-      let json;
+      // ✨ NUEVO 3: Reemplazamos todo el bloque de fetch manual (JSON.parse, response.ok, headers)
+      // por una sola llamada limpia a tu cliente HTTP.
       try {
-        json = JSON.parse(texto);
-      } catch {
-        json = [];
+        const datos = await fetchN8n(`/urbanpulse/reports-history?usuario_id=${encodeURIComponent(usuarioId)}`);
+        return normalizarLista(datos);
+      } catch (error) {
+        throw new Error('No se pudo cargar el historial desde el servidor.', { cause: error });
       }
-
-      return normalizarLista(json);
     },
     enabled: !!usuarioId,
-    staleTime: 5 * 1000, // Se mantiene fresco por 5 segundos antes de revalidar en segundo plano
-    refetchOnWindowFocus: true, // Actualiza automáticamente al volver a la pestaña
+    staleTime: 5 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const filtrados = useMemo(() => {
@@ -205,7 +189,7 @@ export default function HistorialView({ session: sesionProp }) {
             />
           </div>
 
-          {/* SELECTORES DE FILTRO (Tus estilos originales con los colores corregidos) */}
+          {/* SELECTORES DE FILTRO */}
           <div className="flex items-center justify-end overflow-x-auto py-1">
             <div className="inline-flex items-center gap-1.5 p-1.5 bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] shadow-sm">
               {[
@@ -374,7 +358,7 @@ export default function HistorialView({ session: sesionProp }) {
                     {reporte.latitude && reporte.longitude && (
                       <span className="flex items-center gap-1 text-emerald-400 font-medium">
                         <MapPin size={12} />
-                        Ubicación exacta
+                        Ubicicación exacta
                       </span>
                     )}
 

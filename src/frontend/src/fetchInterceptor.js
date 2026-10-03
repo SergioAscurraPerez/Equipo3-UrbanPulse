@@ -1,5 +1,4 @@
-import { clearSession } from './session';
-
+import { clearSession } from "@urbanpulse/shared";
 /**
  * Configura un interceptor global para todas las peticiones Fetch de la aplicación.
  * Captura errores 401 (No Autorizado) y 403 (Prohibido) para cerrar la sesión automáticamente.
