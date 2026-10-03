@@ -1,0 +1,27 @@
+{
+  "project": "UrbanPulse MLOps Prompt Registry",
+  "version_schema": "1.0.0",
+  "last_updated": "2026-10-02T19:50:00Z",
+  "prompts": [
+    {
+      "id": "clasificacion_incidente",
+      "name": "Clasificador de Incidentes Urbanos",
+      "version": "1.0.0",
+      "file_path": "ia-ops/prompts/clasificacion_incidente.md",
+      "model": "gemini-1.5-flash",
+      "temperature": 0.1,
+      "max_output_tokens": 512,
+      "mlflow_experiment": "incident_classification_v1"
+    },
+    {
+      "id": "nlq_ciudadano",
+      "name": "Asistente Ciudadano Consultas NLQ",
+      "version": "1.0.0",
+      "file_path": "ia-ops/prompts/nlq_ciudadano.md",
+      "model": "gemini-1.5-flash",
+      "temperature": 0.3,
+      "max_output_tokens": 1024,
+      "mlflow_experiment": "nlq_assistant_v1"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+name: DevSecOps - Escaneo Trivy (Contenedores e IaC Terraform)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/terraform/**'
+      - 'src/backend/**'
+      - 'src/frontend/**'
+      - 'infrastructure/**'
+      - '.github/workflows/trivy-scan.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/terraform/**'
+      - 'src/backend/**'
+      - 'src/frontend/**'
+      - 'infrastructure/**'
+      - '.github/workflows/trivy-scan.yml'
+
+jobs:
+  iac-security-scan:
+    name: Escaneo de Seguridad IaC Terraform (HT-44 T02)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Escanear IaC Terraform con Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: 'infrastructure/terraform'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+  container-security-scan:
+    name: Escaneo de Seguridad de Configuración de Contenedores (HT-44 T01)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Escanear Dockerfile Postgres e Infraestructura con Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: 'infrastructure'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
