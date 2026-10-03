@@ -14,7 +14,7 @@
       "DB_POSTGRESDB_PORT": "5432",
       "DB_POSTGRESDB_DATABASE": "neondb",
       "DB_POSTGRESDB_USER": "neondb_owner",
-      "DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED": "false",
+      "DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED": "true",
       "N8N_RUNNERS_ENABLED": "false",
       "NODE_OPTIONS": "--max-old-space-size=300",
       "N8N_DIAGNOSTICS_ENABLED": "false",
