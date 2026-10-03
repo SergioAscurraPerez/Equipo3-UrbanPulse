@@ -49,6 +49,7 @@
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-react": "^7.23.0",
     "@module-federation/vite": "^1.23.1",
+    "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.5.5",
