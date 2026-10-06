@@ -1,8 +1,14 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ProtectedRoute } from '../components/ProtectedRoute';
+
+// ✨ Engañamos a Jest para que no intente compilar el paquete ESM real
+jest.mock('@urbanpulse/shared', () => ({
+  getSession: jest.fn(() => null),
+  subscribeSession: jest.fn(),
+  clearSession: jest.fn()
+}));
 
 // Componentes de prueba para cada ruta
 function LoginPage() {
@@ -221,9 +227,7 @@ describe('Route Guards - Suite 3: Rol operador', () => {
     getItemSpy.mockReturnValue(sessionData);
 
     renderWithAuthContext(['/dashboard'], operadorUser);
-    // El contenido protegido debe estar visible inmediatamente
     expect(screen.getByTestId('dashboard-page')).toBeInTheDocument();
-    // No debe haber un parpadeo del login
     expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
 
     getItemSpy.mockRestore();

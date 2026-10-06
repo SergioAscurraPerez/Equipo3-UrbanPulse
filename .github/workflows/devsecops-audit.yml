@@ -1,11 +1,17 @@
-name: DevSecOps - Auditoria de Seguridad en Produccion
+name: DevSecOps - Auditoria de Seguridad en Produccion y Generacion SBOM
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
     paths:
-      - 'src/frontend/vercel.json'
+      - 'src/frontend/**'
+      - 'scripts/devsecops-live-audit.js'
+      - '.github/workflows/devsecops-audit.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/frontend/**'
       - 'scripts/devsecops-live-audit.js'
       - '.github/workflows/devsecops-audit.yml'
   schedule:
@@ -16,17 +22,24 @@ permissions:
   security-events: write
 
 jobs:
-  audit-production:
-    name: Auditoria en Vivo de Produccion Vercel & SAST
+  audit-and-sbom:
+    name: Auditoria DevSecOps y Generación SBOM CycloneDX (HT-44 T03)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del repositorio
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
+
+      - name: Generar Inventario de Software (SBOM CycloneDX) (HT-44 T03)
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./src/frontend
+          format: cyclonedx-json
+          output-file: docs/cyclonedx-sbom.json
 
       - name: Ejecutar Suite de Auditoria DevSecOps
         run: |
@@ -41,15 +54,23 @@ jobs:
 
       - name: Publicar Certificacion en GitHub Code Scanning (SARIF)
         if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: docs/security-audit.sarif
           category: devsecops-compliance
 
+      - name: Subir Reporte SBOM CycloneDX como Artefacto (HT-44 T03)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-report
+          path: docs/cyclonedx-sbom.json
+          retention-days: 30
+
       - name: Subir Reporte Oficial como Artefacto
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: reporte-auditoria-devsecops-sprint2
+          name: reporte-auditoria-devsecops-sprint3
           path: docs/SECURITY_COMPLIANCE_AUDIT_REPORT.md
           retention-days: 90

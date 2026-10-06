@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, MapPin, Wifi, WifiOff, Loader2, LogOut, User, RefreshCw } from 'lucide-react';
-import { getSession, clearSession, subscribeSession } from './session';
+// ✨ NUEVO 1: Importamos todo desde el módulo compartido
+import { getSession, clearSession, subscribeSession, fetchN8n } from '@urbanpulse/shared';
 import './index.css';
-const N8N_BASE = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
+
+// ✨ NUEVO 2: Borramos N8N_BASE (fetchN8n ya conoce la URL base)
 
 function Seccion({ titulo, descripcion, children }) {
   return (
@@ -30,11 +32,14 @@ export default function AjustesView({ theme, onCambiarTema }) {
   const [estadoN8n, setEstadoN8n] = useState('comprobando');
   const [permisoUbicacion, setPermisoUbicacion] = useState('desconocido');
 
+  // ✨ NUEVO 3: Simplificamos el ping al servidor con el nuevo cliente HTTP
   const comprobarN8n = useCallback(async () => {
-    const url = import.meta.env.TE_N8N_REPORTS_LIST_URL || `${N8N_BASE}/urbanpulse/reports-list`;
-    const respuesta = await fetch(url);
-    if (!respuesta.ok) throw new Error(String(respuesta.status));
-    return true;
+    try {
+      await fetchN8n('/urbanpulse/reports-list');
+      return true;
+    } catch (error) {
+      throw new Error('Servidor inalcanzable', { cause: error });
+    }
   }, []);
 
   useEffect(() => {
@@ -184,11 +189,12 @@ export default function AjustesView({ theme, onCambiarTema }) {
           </div>
         </Seccion>
 
-        <Seccion titulo="Conexiones configuradas" descripcion="Si una variable no está definida en Vercel, se usa la URL de respaldo del código.">
-          <Dato etiqueta="Chat (n8n)" valor={import.meta.env.TE_N8N_WEBHOOK_URL || `${N8N_BASE}/urbanpulse/chat`} />
-          <Dato etiqueta="KPIs del dashboard" valor={import.meta.env.TE_N8N_DASHBOARD_KPIS_URL || `${N8N_BASE}/urbanpulse/dashboard-kpis`} />
-          <Dato etiqueta="Reportes del mapa" valor={import.meta.env.TE_N8N_REPORTS_LIST_URL || `${N8N_BASE}/urbanpulse/reports-list`} />
-          <Dato etiqueta="Inicio de sesión" valor={import.meta.env.TE_N8N_AUTH_LOGIN_URL || `${N8N_BASE}/urbanpulse/auth/login`} />
+        {/* ✨ NUEVO 4: Ahora las conexiones se ven mucho más limpias porque fetchN8n centraliza las URLs */}
+        <Seccion titulo="Conexiones configuradas" descripcion="Rutas relativas inyectadas a través del módulo compartido HTTP.">
+          <Dato etiqueta="Chat (n8n)" valor="/urbanpulse/chat" />
+          <Dato etiqueta="KPIs del dashboard" valor="/urbanpulse/dashboard-kpis" />
+          <Dato etiqueta="Reportes del mapa" valor="/urbanpulse/reports-list" />
+          <Dato etiqueta="Inicio de sesión" valor="/urbanpulse/auth/login" />
         </Seccion>
       </div>
     </div>

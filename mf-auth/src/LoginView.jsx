@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Activity, Lock, Mail, Loader2, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
-import { saveSession } from './session';
+import { saveSession } from '@urbanpulse/shared';
 import './index.css';
 
 const N8N_BASE = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook';
