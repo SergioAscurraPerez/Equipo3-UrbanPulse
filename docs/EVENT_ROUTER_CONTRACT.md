@@ -8,6 +8,18 @@
 
 ---
 
+## 0. Autenticación
+
+El webhook usa **Header Auth** de n8n. Toda petición debe enviar:
+
+- **Header:** `X-Event-Token`
+- **Credencial en n8n:** `UrbanPulse Event Router Header Auth` (tipo Header Auth; Name = `X-Event-Token`, Value = token generado por el equipo).
+- **Secret en GitHub (para quien emite eventos desde Actions):** `EVENT_ROUTER_TOKEN`.
+
+Sin el header o con un token inválido, n8n responde 403 y el evento no se persiste. No incluir el valor del token en el código ni en este documento.
+
+---
+
 ## 1. Sobre Común de Eventos (Envelope Specification)
 
 Todo evento enviado a `POST /urbanpulse/eventos` debe cumplir con el siguiente esquema JSON:

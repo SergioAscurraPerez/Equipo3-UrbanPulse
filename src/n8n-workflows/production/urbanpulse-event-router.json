@@ -5,6 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "urbanpulse/eventos",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -12,7 +13,12 @@
       "name": "Webhook POST /urbanpulse/eventos",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [ 100, 300 ]
+      "position": [ 100, 300 ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "UrbanPulse Event Router Header Auth"
+        }
+      }
     },
     {
       "parameters": {
