@@ -13,7 +13,10 @@
       "name": "Webhook POST /urbanpulse/eventos",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [ 100, 300 ],
+      "position": [
+        100,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "name": "UrbanPulse Event Router Header Auth"
@@ -28,7 +31,10 @@
       "name": "Validar Esquema del Sobre de Eventos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [ 300, 300 ]
+      "position": [
+        300,
+        300
+      ]
     },
     {
       "parameters": {
@@ -42,7 +48,10 @@
       "name": "Responder 202 o 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [ 500, 300 ]
+      "position": [
+        500,
+        300
+      ]
     },
     {
       "parameters": {
@@ -59,29 +68,68 @@
       "name": "¿Es Evento Válido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [ 700, 300 ]
+      "position": [
+        700,
+        300
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO eventos (id, tipo, fecha, origen, datos, estado) VALUES ('{{ $json.evento.id }}', '{{ $json.evento.tipo }}', '{{ $json.evento.fecha }}', '{{ $json.evento.origen }}', '{{ JSON.stringify($json.evento.datos) }}'::jsonb, 'recibido') ON CONFLICT (id) DO NOTHING;"
+        "query": "INSERT INTO eventos (id, tipo, fecha, origen, datos, estado)\nVALUES ($1::uuid, $2, $3::timestamptz, $4, $5::jsonb, 'recibido')\nON CONFLICT (id) DO NOTHING\nRETURNING id, tipo, fecha, origen, datos;",
+        "options": {
+          "queryReplacement": "={{ [ $json.evento.id, String($json.evento.tipo).slice(0, 100), new Date($json.evento.fecha).toISOString(), String($json.evento.origen).slice(0, 255), JSON.stringify($json.evento.datos) ] }}"
+        }
       },
       "id": "postgres-persist",
       "name": "Persistir Evento en Neon DB",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 1,
-      "position": [ 900, 200 ]
+      "typeVersion": 2.5,
+      "position": [
+        900,
+        200
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO eventos (id, tipo, fecha, origen, datos, estado) VALUES ('{{ $json.evento.id || '00000000-0000-0000-0000-000000000000' }}', '{{ $json.evento.tipo || 'desconocido' }}', now(), '{{ $json.evento.origen || 'desconocido' }}', '{{ JSON.stringify($json.response_body) }}'::jsonb, 'rechazado') ON CONFLICT (id) DO NOTHING;"
+        "query": "INSERT INTO eventos (id, tipo, fecha, origen, datos, estado)\nVALUES ($1::uuid, $2, now(), $3, $4::jsonb, 'rechazado')\nON CONFLICT (id) DO NOTHING;",
+        "options": {
+          "queryReplacement": "={{ [ (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test($json.evento.id) ? $json.evento.id : '00000000-0000-0000-0000-000000000000'), String($json.evento.tipo || 'desconocido').slice(0, 100), String($json.evento.origen || 'desconocido').slice(0, 255), JSON.stringify($json.response_body) ] }}"
+        }
       },
       "id": "postgres-persist-rechazado",
       "name": "Registrar Evento Rechazado (400)",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 1,
-      "position": [ 900, 400 ]
+      "typeVersion": 2.5,
+      "position": [
+        900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "UrbanPulse - Despachar Evento (HT-51 T02)"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "despachar-evento",
+      "name": "Despachar Evento",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        200
+      ],
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -124,6 +172,17 @@
         [
           {
             "node": "Registrar Evento Rechazado (400)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persistir Evento en Neon DB": {
+      "main": [
+        [
+          {
+            "node": "Despachar Evento",
             "type": "main",
             "index": 0
           }
