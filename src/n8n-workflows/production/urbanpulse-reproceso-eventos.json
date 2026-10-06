@@ -1,0 +1,114 @@
+{
+  "name": "UrbanPulse - Reproceso de Eventos (HT-51 T02)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "rep-schedule",
+      "name": "Cada Hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        100,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "rep-manual",
+      "name": "Ejecutar a Mano",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, tipo, fecha, origen, datos\nFROM eventos\nWHERE (estado = 'fallido' AND intentos < 3)\n   OR (estado = 'recibido' AND actualizado_en < now() - interval '10 minutes')\nORDER BY creado_en\nLIMIT 50;",
+        "options": {}
+      },
+      "id": "rep-buscar",
+      "name": "Buscar Eventos Pendientes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "UrbanPulse - Despachar Evento (HT-51 T02)"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "rep-despachar",
+      "name": "Despachar Evento",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Cada Hora": {
+      "main": [
+        [
+          {
+            "node": "Buscar Eventos Pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar a Mano": {
+      "main": [
+        [
+          {
+            "node": "Buscar Eventos Pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Eventos Pendientes": {
+      "main": [
+        [
+          {
+            "node": "Despachar Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "name": "UrbanPulse - Despachar Evento (HT-51 T02)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "disp-trigger",
+      "name": "Recibir Evento",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "UrbanPulse - Suscriptor de Prueba (HT-51 T02, solo staging)"
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "disp-suscriptor",
+      "name": "Entregar a Suscriptor de Prueba",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        300,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.error }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "disp-if",
+      "name": "¿Entrega con Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE eventos\nSET estado = 'fallido',\n    intentos = intentos + 1,\n    ultimo_error = $2,\n    actualizado_en = now()\nWHERE id = $1::uuid;",
+        "options": {
+          "queryReplacement": "={{ [ $('Recibir Evento').first().json.id, String(($json.error && $json.error.message) || $json.error).slice(0, 500) ] }}"
+        }
+      },
+      "id": "disp-fallido",
+      "name": "Marcar Evento Fallido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE eventos\nSET estado = 'entregado',\n    entregado_en = now(),\n    ultimo_error = NULL,\n    actualizado_en = now()\nWHERE id = $1::uuid;",
+        "options": {
+          "queryReplacement": "={{ [ $('Recibir Evento').first().json.id ] }}"
+        }
+      },
+      "id": "disp-entregado",
+      "name": "Marcar Evento Entregado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Recibir Evento": {
+      "main": [
+        [
+          {
+            "node": "Entregar a Suscriptor de Prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Entregar a Suscriptor de Prueba": {
+      "main": [
+        [
+          {
+            "node": "¿Entrega con Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Entrega con Error?": {
+      "main": [
+        [
+          {
+            "node": "Marcar Evento Fallido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar Evento Entregado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
