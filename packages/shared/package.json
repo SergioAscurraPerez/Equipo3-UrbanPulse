@@ -1,0 +1,7 @@
+{
+  "name": "@urbanpulse/shared",
+  "version": "1.0.0",
+  "description": "Lógica compartida de sesión y cliente HTTP para UrbanPulse",
+  "main": "index.js",
+  "type": "module"
+}
