@@ -48,3 +48,7 @@ postman/collections/*.html
 postman/collections/*resultado*.json
 postman/**/*.postman_environment.json
 postman/environments/*.postman_environment.json
+
+
+ml/data/output/
+mlruns/
