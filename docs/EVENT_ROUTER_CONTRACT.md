@@ -62,3 +62,51 @@ Todo evento enviado a `POST /urbanpulse/eventos` debe cumplir con el siguiente e
      "detalle": "El campo \"id\" debe ser un UUID v4 válido."
    }
    ```
+
+---
+
+## 2. Entrega a suscriptores
+
+Después de persistir un evento válido (estado `recibido`), el router lo entrega con el workflow **Despachar Evento**. El mismo despachador lo usa el reproceso, así que la lógica de entrega existe una sola vez.
+
+### Mapeo tipo -> suscriptor
+
+| Tipo de evento | Suscriptor destino | Estado |
+|---|---|---|
+| `reporte.creado` | Ingesta RAG (HT-50) | Pendiente de implementar como subworkflow |
+| `reporte.estado_cambiado` | Ingesta RAG (HT-50) | Pendiente de implementar como subworkflow |
+| `n8n.flujo_fallido` | Service Desk (HT-41) | Pendiente de implementar en n8n |
+| `modelo.deriva_detectada` | Service Desk (HT-41) | Pendiente de implementar en n8n |
+
+> **Suscriptor de Prueba (solo staging).** Mientras los flujos de Ingesta RAG y Service Desk no existan como subworkflows, **todos** los tipos se entregan al workflow `Suscriptor de Prueba`. No debe usarse en producción. Al implementar los reales, se reemplaza el nodo de entrega del despachador por un Switch por `tipo` según la tabla anterior.
+
+### Estados e intentos
+
+| Resultado de la entrega | Cambio en `eventos` |
+|---|---|
+| Éxito | `estado = 'entregado'`, `entregado_en = now()`, `ultimo_error = NULL` |
+| Error | `estado = 'fallido'`, `intentos = intentos + 1`, `ultimo_error = <mensaje>` |
+
+Un `id` duplicado no se vuelve a entregar desde el router (`ON CONFLICT DO NOTHING` no devuelve fila).
+
+## 3. Reproceso
+
+El workflow **Reproceso de Eventos** corre cada hora (Schedule Trigger) y también se puede ejecutar a mano (Manual Trigger). Reintenta, hasta 50 eventos por corrida, los que cumplan:
+
+- `estado = 'fallido'` y `intentos < 3`, o
+- `estado = 'recibido'` y `actualizado_en` con más de 10 minutos de antigüedad.
+
+Los reenvía por Despachar Evento sin volver a insertar. Un evento `fallido` con `intentos = 3` queda para revisión manual.
+
+## 4. Puesta en marcha en n8n
+
+1. Ejecutar en Neon las migraciones `20261005000001_create_eventos_table.sql` y `20261006000001_eventos_entrega.sql` (ambas idempotentes).
+2. Importar los workflows en este orden: `Suscriptor de Prueba`, `Despachar Evento`, el router y `Reproceso de Eventos`.
+3. En cada nodo Postgres seleccionar la credencial de Neon, y en cada nodo Execute Workflow seleccionar el workflow destino (los JSON no incluyen ids de workflow ni de credencial).
+4. Crear la credencial Header Auth descrita en la sección 0.
+
+### Prueba de "suscriptor caído" (staging)
+
+1. En `Suscriptor de Prueba`, dejar `SUSCRIPTOR_CAIDO = true`.
+2. Enviar un evento válido con `datos.simular_fallo = true`. Debe quedar `fallido` con `intentos = 1`.
+3. Cambiar `SUSCRIPTOR_CAIDO` a `false` y ejecutar a mano `Reproceso de Eventos`. Debe pasar a `entregado`.
