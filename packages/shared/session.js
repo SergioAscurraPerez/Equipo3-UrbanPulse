@@ -1,12 +1,6 @@
-// Sesión compartida por el host y los micro-frontends. Todos viven en la misma
-// página y el mismo origen, así que basta con acordar una única clave de
-// localStorage: si el host usara una clave propia, el historial nunca vería la
-// sesión que abre el usuario desde el chat y acabaría pidiendo los reportes de
-// todo el mundo.
-const SESSION_STORAGE_KEY = 'urbanpulse_citizen_session';
+// Manejo centralizado de la sesión para todos los microfrontends
 
-// localStorage solo dispara 'storage' en las *otras* pestañas, así que además
-// avisamos con un evento propio para refrescar las vistas de esta pestaña.
+const SESSION_STORAGE_KEY = 'urbanpulse_citizen_session';
 const SESSION_EVENT = 'urbanpulse:sesion';
 
 export function getSession() {
@@ -28,7 +22,7 @@ function avisarCambio() {
   try {
     window.dispatchEvent(new window.CustomEvent(SESSION_EVENT));
   } catch {
-    // Entorno sin window (SSR, tests)
+    // Entorno sin window
   }
 }
 
@@ -36,7 +30,7 @@ export function saveSession(session) {
   try {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
   } catch {
-    // localStorage no disponible (modo privado, etc.)
+    // localStorage no disponible
   }
   avisarCambio();
 }
@@ -45,13 +39,11 @@ export function clearSession() {
   try {
     localStorage.removeItem(SESSION_STORAGE_KEY);
   } catch {
-    // localStorage no disponible (modo privado, etc.)
+    // localStorage no disponible
   }
   avisarCambio();
 }
 
-// Devuelve la función para cancelar la suscripción, lista para usarse tal cual
-// como retorno de un useEffect.
 export function subscribeSession(alCambiar) {
   const manejar = (evento) => {
     if (evento.type === 'storage' && evento.key && evento.key !== SESSION_STORAGE_KEY) return;
@@ -65,4 +57,12 @@ export function subscribeSession(alCambiar) {
     window.removeEventListener(SESSION_EVENT, manejar);
     window.removeEventListener('storage', manejar);
   };
+}
+
+// NUEVA FUNCIÓN AÑADIDA para el httpClient.js
+export function getToken() {
+  const session = getSession();
+  // Asumimos que tu backend devuelve el token dentro de una propiedad 'token' o 'jwt'
+  // Ajusta 'session.token' si tu n8n lo devuelve con otro nombre (ej. session.accessToken)
+  return session ? session.token : null; 
 }

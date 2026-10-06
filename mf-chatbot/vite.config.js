@@ -38,6 +38,17 @@ export default defineConfig(({ mode }) => {
     envPrefix: ['VITE_', 'TE_'],
     server: {
       port: 3003,
+      cors: true, // ✨ NUEVO: Permite al Host leer los archivos en modo dev
+    },
+    // ✨ NUEVO: Obligatorio para que Module Federation genere los módulos correctamente
+    build: {
+      target: 'esnext',
+    },
+    // ✨ NUEVO: Asegura que npm run preview use el puerto 3003 y permita conexiones
+    preview: {
+      port: 3003,
+      strictPort: true,
+      cors: true,
     },
     resolve: {
       dedupe: ['react', 'react-dom'],
