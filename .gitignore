@@ -48,3 +48,6 @@ postman/collections/*.html
 postman/collections/*resultado*.json
 postman/**/*.postman_environment.json
 postman/environments/*.postman_environment.json
+# Reporte generado por ia-ops/scripts/monitor_drift.py (HT-49); el workflow lo
+# sube como artefacto en cada corrida.
+docs/DRIFT_MONITORING_REPORT.json
