@@ -1,13 +1,15 @@
 name: Terraform CI
 
 # HT-42 T03: fmt, validate y plan en cada Pull Request que toca infrastructure/terraform.
-# Este workflow no ejecuta apply.
+# El apply es solo manual (workflow_dispatch) y pasa por el entorno "production",
+# que en GitHub se configura con revisores obligatorios.
 
 on:
   pull_request:
     paths:
       - "infrastructure/terraform/**"
       - ".github/workflows/terraform-ci.yml"
+  workflow_dispatch:
 
 concurrency:
   group: terraform-${{ github.ref }}
@@ -60,7 +62,7 @@ jobs:
       #   run: ...
 
       # -lock=false: el plan de un PR solo lee, asi el usuario de CI no necesita escribir
-      # el archivo de bloqueo (use_lockfile) en el bucket de estado.
+      # el archivo de bloqueo (use_lockfile) en el bucket de estado. El apply si bloquea.
       - name: terraform plan
         id: plan
         working-directory: ${{ env.TF_DIR }}
@@ -128,3 +130,34 @@ jobs:
       - name: Fallar si fmt o plan fallaron
         if: steps.fmt.outcome == 'failure' || steps.plan.outcome == 'failure'
         run: exit 1
+
+  apply:
+    name: apply (manual, con aprobacion)
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Configurar en Settings > Environments > production: revisores obligatorios.
+    environment: production
+    permissions:
+      contents: read
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_AWS_SECRET_ACCESS_KEY }}
+      VERCEL_API_TOKEN: ${{ secrets.TF_VERCEL_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: terraform init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init -input=false
+
+      - name: terraform plan
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform plan -input=false -no-color -out=tfplan
+
+      - name: terraform apply
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -input=false tfplan
