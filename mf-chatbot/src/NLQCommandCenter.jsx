@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { Send, Camera, Bot, User, MapPin, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import './index.css';
-import { getSession, saveSession, clearSession, subscribeSession } from './session';
 
-// Fallback si TE_N8N_WEBHOOK_URL no está configurada en el entorno de despliegue
-const N8N_CHAT_WEBHOOK_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat';
-const N8N_CHAT_HISTORY_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat-history';
-const N8N_CHAT_HISTORY_APPEND_URL = 'https://urbanpulse-n8n.xq33kajky1yy6.us-east-1.cs.amazonlightsail.com/webhook/urbanpulse/chat-history-append';
+// ✨ NUEVO 1: Importamos todo desde tu módulo compartido
+import { getSession, saveSession, clearSession, subscribeSession, fetchN8n } from '@urbanpulse/shared';
+
+// ✨ NUEVO 2: ¡Adiós a las URLs largas y estáticas! fetchN8n ya sabe la ruta base.
 
 // Coordenadas de respaldo (Lima) si el navegador no da permiso de geolocalización o no la soporta
 const FALLBACK_LAT = -12.0464;
@@ -79,33 +78,26 @@ function mensajesDesdeHistorial(fila) {
   }));
 }
 
+// ✨ NUEVO 3: Simplificamos la petición del historial usando fetchN8n
 async function pedirHistorialChat(sessionId, usuarioId) {
-  const base = import.meta.env.TE_N8N_CHAT_HISTORY_URL || N8N_CHAT_HISTORY_URL;
-  const respuesta = await fetch(
-    `${base}?session_id=${encodeURIComponent(sessionId)}&usuario_id=${encodeURIComponent(usuarioId)}`
-  );
-  if (!respuesta.ok) return [];
-
-  const texto = await respuesta.text();
-  if (!texto) return [];
-  let datos;
   try {
-    datos = JSON.parse(texto);
-  } catch {
+    const endpoint = `/urbanpulse/chat-history?session_id=${encodeURIComponent(sessionId)}&usuario_id=${encodeURIComponent(usuarioId)}`;
+    const datos = await fetchN8n(endpoint);
+    
+    const fila = Array.isArray(datos) ? datos[0] : datos;
+    return fila && fila.session_id ? mensajesDesdeHistorial(fila) : [];
+  } catch (error) {
+    console.warn('No se pudo cargar el historial:', error);
     return [];
   }
-
-  const fila = Array.isArray(datos) ? datos[0] : datos;
-  return fila && fila.session_id ? mensajesDesdeHistorial(fila) : [];
 }
 
+// ✨ NUEVO 4: Simplificamos el guardado en el historial usando fetchN8n
 function guardarTurnoEnHistorial(sessionId, usuarioId, mensajes) {
   if (!sessionId || !usuarioId || mensajes.length === 0) return;
 
-  const url = import.meta.env.TE_N8N_CHAT_HISTORY_APPEND_URL || N8N_CHAT_HISTORY_APPEND_URL;
-  fetch(url, {
+  fetchN8n('/urbanpulse/chat-history-append', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId, usuario_id: usuarioId, mensajes }),
   }).catch((error) => {
     console.warn('No se pudo guardar el turno en el historial:', error);
@@ -177,7 +169,6 @@ export default function NLQCommandCenter() {
     setSession(null);
   };
 
-  // Render condicional envuelto en Suspense para soporte asíncrono del módulo federado
   if (!session) {
     return (
       <Suspense fallback={
@@ -244,19 +235,11 @@ export default function NLQCommandCenter() {
         longitude: lonActual
       };
 
-      const webhookUrl = import.meta.env.TE_N8N_WEBHOOK_URL || N8N_CHAT_WEBHOOK_URL;
-
-      const response = await fetch(webhookUrl, {
+      // ✨ NUEVO 5: Reemplazamos el fetch manual por tu cliente inteligente
+      const data = await fetchN8n('/urbanpulse/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        throw new Error('Error al procesar el incidente en el servidor');
-      }
-
-      const data = await response.json();
 
       if (data.respuesta) {
         setMessages(prev => [...prev, {

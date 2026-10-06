@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { getSession, subscribeSession } from '../session';
+import { getSession, subscribeSession } from '@urbanpulse/shared';
 
 export const AuthContext = createContext();
 

@@ -14,31 +14,48 @@ import {
 } from 'lucide-react';
 import '@tomtom-international/web-sdk-maps/dist/maps.css';
 import { getInitialTheme, applyTheme } from './theme'; 
-import { getSession, clearSession, subscribeSession } from './session';
+import { getSession, clearSession, subscribeSession } from '@urbanpulse/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { inicializarRemotes, cargarRemote } from './remotes';
+import RemoteBoundary from './components/RemoteBoundary';
 
 const queryClient = new QueryClient();
 
 // Microfrontends remotos federados
-const MapaUrbano = React.lazy(() => import('mf_mapa_urbano/MapaUrbano'));
-const Dashboard = React.lazy(() => import('mf_dashboard/Dashboard'));
-const Chatbot = React.lazy(() => import('mf_chatbot/Chatbot'));
-const GestorIncidentes = React.lazy(() => import('mf_gestion_incidentes/GestorIncidentes'));
-const HistorialView = React.lazy(() => import('mf_historial_reportes/HistorialView'));
-const AuthContainer = React.lazy(() => import('mf_auth/LoginView')); 
-const AjustesView = React.lazy(() => import('mf_ajustes/AjustesView'));
+const MapaUrbano = React.lazy(() => cargarRemote('mf_mapa_urbano', './MapaUrbano'));
+const Dashboard = React.lazy(() => cargarRemote('mf_dashboard', './Dashboard'));
+const Chatbot = React.lazy(() => cargarRemote('mf_chatbot', './Chatbot'));
+const GestorIncidentes = React.lazy(() => cargarRemote('mf_gestion_incidentes', './GestorIncidentes'));
+const HistorialView = React.lazy(() => cargarRemote('mf_historial_reportes', './HistorialView'));
+const AuthContainer = React.lazy(() => cargarRemote('mf_auth', './LoginView')); 
+const AjustesView = React.lazy(() => cargarRemote('mf_ajustes', './AjustesView'));
 
 function App() {
+  const [remotesListos, setRemotesListos] = useState(false);
   const [activeTab, setActiveTab] = useState('inicio');
   const [theme, setTheme] = useState(getInitialTheme);
   const [session, setSession] = useState(getSession);
 
   useEffect(() => {
+    inicializarRemotes().then(() => {
+      setRemotesListos(true);
+    });
+  }, []);
+
+  useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
-  // Sincronización de sesión global
   useEffect(() => subscribeSession(setSession), []);
+
+  if (!remotesListos) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[var(--color-bg-app)] text-[var(--color-accent)]">
+        <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
+        <p className="font-medium tracking-wide">Cargando topología del sistema...</p>
+      </div>
+    );
+  }
 
   const requiereLogin = !session && ['dashboard', 'historial'].includes(activeTab);
   const vistaActiva = (!session && activeTab === 'historial') ? 'inicio' : activeTab;
@@ -47,11 +64,9 @@ function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Configuración del menú lateral dinámico según el rol
   let menuItems = [];
 
   if (!session) {
-    // Visitante anónimo
     menuItems = [
       { id: 'inicio', label: 'INICIO', icon: Home },
       { id: 'chat', label: 'CHAT', icon: MessageSquare },
@@ -60,7 +75,6 @@ function App() {
       { id: 'ajustes', label: 'AJUSTES', icon: Settings },
     ];
   } else if (session.role === 'operador' || session.rol === 'operador') {
-    // Operador municipal (Solo Dashboard, Mapa, Gestión de Incidentes y Ajustes)
     menuItems = [
       { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
       { id: 'mapa', label: 'MAPA', icon: MapIcon },
@@ -68,7 +82,6 @@ function App() {
       { id: 'ajustes', label: 'AJUSTES', icon: Settings },
     ];
   } else {
-    // Ciudadano autenticado
     menuItems = [
       { id: 'inicio', label: 'INICIO', icon: Home },
       { id: 'chat', label: 'CHAT', icon: MessageSquare },
@@ -173,14 +186,17 @@ function App() {
           
           {requiereLogin ? (
             <div className="h-full w-full animate-fade-in">
-              <Suspense fallback={
-                <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                  <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
-                  Cargando módulo de autenticación...
-                </div>
-              }>
-                <AuthContainer />
-              </Suspense>
+              {/* ✨ NUEVO: Boundary para Login */}
+              <RemoteBoundary nombre="mf_auth">
+                <Suspense fallback={
+                  <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                    <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
+                    Cargando módulo de autenticación...
+                  </div>
+                }>
+                  <AuthContainer />
+                </Suspense>
+              </RemoteBoundary>
             </div>
           ) : (
             <>
@@ -226,28 +242,34 @@ function App() {
               {/* VISTA: CHAT */}
               {vistaActiva === 'chat' && (
                 <div className="h-full w-full animate-fade-in">
-                  <Suspense fallback={
-                    <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                      <MessageSquare size={40} className="mb-4 animate-pulse opacity-50" />
-                      Inicializando Agente Conversacional...
-                    </div>
-                  }>
-                    <Chatbot />
-                  </Suspense>
+                  {/* ✨ NUEVO: Boundary para Chatbot */}
+                  <RemoteBoundary nombre="mf_chatbot">
+                    <Suspense fallback={
+                      <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                        <MessageSquare size={40} className="mb-4 animate-pulse opacity-50" />
+                        Inicializando Agente Conversacional...
+                      </div>
+                    }>
+                      <Chatbot />
+                    </Suspense>
+                  </RemoteBoundary>
                 </div>
               )}
 
               {/* VISTA: DASHBOARD */}
               {vistaActiva === 'dashboard' && (
                 <div className="h-full overflow-y-auto p-8 animate-fade-in">
-                  <Suspense fallback={
-                    <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                      <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
-                      Conectando con el panel analítico...
-                    </div>
-                  }>
-                    <Dashboard />
-                  </Suspense>
+                  {/* ✨ NUEVO: Boundary para Dashboard */}
+                  <RemoteBoundary nombre="mf_dashboard">
+                    <Suspense fallback={
+                      <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                        <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
+                        Conectando con el panel analítico...
+                      </div>
+                    }>
+                      <Dashboard />
+                    </Suspense>
+                  </RemoteBoundary>
                 </div>
               )}
 
@@ -255,14 +277,17 @@ function App() {
               {vistaActiva === 'mapa' && (
                 <div className="h-full w-full p-6 animate-fade-in">
                   <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg shadow-[#000000]/50 relative">
-                    <Suspense fallback={
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-accent)] bg-[var(--color-card)]">
-                        <MapIcon size={40} className="mb-4 animate-pulse opacity-50" />
-                        Cargando topología...
-                      </div>
-                    }>
-                      <MapaUrbano />
-                    </Suspense>
+                    {/* ✨ NUEVO: Boundary para Mapa */}
+                    <RemoteBoundary nombre="mf_mapa_urbano">
+                      <Suspense fallback={
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-accent)] bg-[var(--color-card)]">
+                          <MapIcon size={40} className="mb-4 animate-pulse opacity-50" />
+                          Cargando topología...
+                        </div>
+                      }>
+                        <MapaUrbano />
+                      </Suspense>
+                    </RemoteBoundary>
                   </div>
                 </div>
               )}
@@ -270,42 +295,51 @@ function App() {
               {/* VISTA: HISTORIAL */}
               {vistaActiva === 'historial' && (
                 <div className="h-full animate-fade-in">
-                  <Suspense fallback={
-                    <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                      <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
-                      Cargando historial de reportes...
-                    </div>
-                  }>
-                    <HistorialView session={session} />
-                  </Suspense>
+                  {/* ✨ NUEVO: Boundary para Historial */}
+                  <RemoteBoundary nombre="mf_historial_reportes">
+                    <Suspense fallback={
+                      <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                        <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
+                        Cargando historial de reportes...
+                      </div>
+                    }>
+                      <HistorialView session={session} />
+                    </Suspense>
+                  </RemoteBoundary>
                 </div>
               )}
 
               {/* VISTA: AJUSTES */}
               {vistaActiva === 'ajustes' && (
                 <div className="h-full animate-fade-in">
-                  <Suspense fallback={
-                    <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                      <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
-                      Cargando configuración...
-                    </div>
-                  }>
-                    <AjustesView theme={theme} onCambiarTema={setTheme} />
-                  </Suspense>
+                  {/* ✨ NUEVO: Boundary para Ajustes */}
+                  <RemoteBoundary nombre="mf_ajustes">
+                    <Suspense fallback={
+                      <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                        <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
+                        Cargando configuración...
+                      </div>
+                    }>
+                      <AjustesView theme={theme} onCambiarTema={setTheme} />
+                    </Suspense>
+                  </RemoteBoundary>
                 </div>
               )}
 
               {/* VISTA: GESTIÓN DE INCIDENTES */}
               {vistaActiva === 'incidentes' && (
                 <div className="h-full overflow-y-auto p-8 animate-fade-in">
-                  <Suspense fallback={
-                    <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
-                      <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
-                      Conectando con el módulo de gestión...
-                    </div>
-                  }>
-                    <GestorIncidentes />
-                  </Suspense>
+                  {/* ✨ NUEVO: Boundary para Incidentes */}
+                  <RemoteBoundary nombre="mf_gestion_incidentes">
+                    <Suspense fallback={
+                      <div className="flex flex-col items-center justify-center h-full text-[var(--color-accent)]">
+                        <div className="animate-spin h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mb-4"></div>
+                        Conectando con el módulo de gestión...
+                      </div>
+                    }>
+                      <GestorIncidentes />
+                    </Suspense>
+                  </RemoteBoundary>
                 </div>
               )}
             </>

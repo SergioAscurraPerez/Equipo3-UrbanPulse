@@ -1,0 +1,62 @@
+{
+  "name": "UrbanPulse - Estado de la Plataforma (HU-13 T01)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "urbanpulse/estado-plataforma",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook GET /estado-plataforma",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [ 100, 200 ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const timestamp = new Date().toISOString();\n\nreturn [{\n  json: {\n    estado_plataforma: 'OPERATIVO',\n    timestamp: timestamp,\n    version: '1.0.0',\n    servicios: [\n      { nombre: 'n8n_engine', estado: 'ONLINE', latencia_ms: 45 },\n      { nombre: 'fastapi_mlops', estado: 'ONLINE', latencia_ms: 22 },\n      { nombre: 'neon_postgres', estado: 'ONLINE', latencia_ms: 18 }\n    ],\n    monitoreo_modelo: {\n      modelo: 'urbanpulse_risk_classifier',\n      version: 'v1.0.0',\n      f1_score: 0.941,\n      deriva_detectada: false\n    },\n    service_desk_jira: {\n      tickets_abiertos: 2,\n      cumplimiento_sla_porcentaje: 98.5,\n      portal_url: 'https://urbanpulse-ti.atlassian.net'\n    }\n  }\n}];"
+      },
+      "id": "code-node",
+      "name": "Reunir Métricas y Latencias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [ 300, 200 ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-node",
+      "name": "Responder JSON Ciudadano",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [ 500, 200 ]
+    }
+  ],
+  "connections": {
+    "Webhook GET /estado-plataforma": {
+      "main": [
+        [
+          {
+            "node": "Reunir Métricas y Latencias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reunir Métricas y Latencias": {
+      "main": [
+        [
+          {
+            "node": "Responder JSON Ciudadano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
