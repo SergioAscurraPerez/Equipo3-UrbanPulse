@@ -52,3 +52,4 @@ postman/environments/*.postman_environment.json
 
 ml/data/output/
 mlruns/
+ml/train/output/
