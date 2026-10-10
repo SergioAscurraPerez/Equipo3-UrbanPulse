@@ -60,10 +60,9 @@ def model_info():
     return {
         "model_name": model_engine.model_name,
         "active_version": model_engine.version,
-        "stage": "Production (Champion)",
-        "framework": "Scikit-Learn / PyTorch Hybrid",
-        "rollback_enabled": True,
-        "last_quality_gate_passed": "F1-Score: 0.941"
+        "stage": model_engine.model_stage,
+        "champion_active": model_engine.active_champion,
+        "tracking_server": "DagsHub" if model_engine.mlflow_uri else "Local"
     }
 
 @app.post("/predict", response_model=RiskPredictionResponse, status_code=status.HTTP_200_OK)
