@@ -59,6 +59,17 @@ function textoDeSalida(caso) {
   return typeof bruto === 'string' ? bruto : JSON.stringify(bruto);
 }
 
+// La categoria obtenida sale del modelo, es decir, de texto que no controlamos
+// y que acaba dentro de una tabla Markdown del informe.
+function escaparCelda(texto) {
+  return String(texto ?? '')
+    // La barra invertida va PRIMERO: si se escapara despues, duplicaria tambien
+    // las que acaba de anadir el escape de la tuberia.
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, ' ');
+}
+
 function parsearJson(texto) {
   const limpio = String(texto)
     .trim()
@@ -169,7 +180,9 @@ if (errores.length) {
     '| id | Reporte | Esperado | Obtenido |',
     '| --- | --- | --- | --- |',
     ...errores.map(
-      (e) => `| ${e.id} | ${e.descripcion.replace(/\|/g, '\\|')} | ${e.esperada} | ${e.obtenida} |`,
+      (e) =>
+        `| ${e.id} | ${escaparCelda(e.descripcion)} | ${escaparCelda(e.esperada)} |` +
+        ` ${escaparCelda(e.obtenida)} |`,
     ),
     '',
   );

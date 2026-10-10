@@ -101,7 +101,12 @@ const altos = hallazgos.filter((h) => h.riesgo === 'Alto');
 const sinRevisar = hallazgos.filter((h) => h.accion === 'SIN REVISAR');
 
 function escapar(texto) {
-  return String(texto).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  return String(texto)
+    // La barra invertida va PRIMERO: si se escapara despues, duplicaria tambien
+    // las que acaba de anadir el escape de la tuberia y el texto saldria roto.
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, ' ');
 }
 
 const lineas = [

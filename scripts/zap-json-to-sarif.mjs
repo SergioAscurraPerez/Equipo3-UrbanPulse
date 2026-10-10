@@ -29,18 +29,39 @@ if (!rutaEntrada || !rutaSalida) {
 const NIVEL_SARIF = { 3: 'error', 2: 'warning', 1: 'warning', 0: 'note' };
 const NOMBRE_RIESGO = { 3: 'Alto', 2: 'Medio', 1: 'Bajo', 0: 'Informativo' };
 
+// El texto que entra aqui viene de los campos descriptivos de ZAP, que a su vez
+// pueden arrastrar contenido del sitio escaneado (evidencias, parametros
+// reflejados). Es decir: contenido potencialmente controlado por un atacante que
+// termina en la pestana Security del repositorio. Por eso la limpieza se hace
+// con cuidado y no con un unico replace.
 function aTextoPlano(html) {
   if (!html) return '';
-  return html
-    .replace(/<\/?p>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
+
+  // Las entidades se decodifican ANTES de quitar etiquetas. Al reves,
+  // "&lt;script&gt;" sobreviviria intacto a la limpieza y reapareceria como
+  // "<script>" ya en la salida.
+  //
+  // Y "&amp;" se decodifica en ultimo lugar: hacerlo antes convertiria
+  // "&amp;lt;" en "<" en vez de en el literal "&lt;" (doble desescapado).
+  let texto = String(html)
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+    .replace(/&#0*39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/<\/?p\s*>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n');
+
+  // Se repite hasta que deje de haber cambios: una sola pasada permite que
+  // construcciones anidadas como "<<script>script>" vuelvan a formar una
+  // etiqueta valida justo despues de borrar la interior.
+  let previo;
+  do {
+    previo = texto;
+    texto = texto.replace(/<[^>]*>/g, '');
+  } while (texto !== previo);
+
+  return texto.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 // GitHub interpreta artifactLocation.uri como una ruta de archivo, asi que la
