@@ -1,52 +1,153 @@
-name: DevSecOps - Escaneo Trivy (Contenedores e IaC Terraform)
+name: DevSecOps - Escaneo Trivy de imagenes (HT-44 T01)
+
+# HT-44 T01: cada Pull Request escanea con Trivy las imagenes reales de n8n,
+# Postgres y la API de inferencia. Una vulnerabilidad CRITICAL con parche
+# disponible hace fallar el job; para que bloquee el merge, el check
+# "Trivy imagen (...)" debe marcarse como requerido en la proteccion de main.
+#
+# Se usa ignore-unfixed: una CVE critica sin parche publicado no se puede
+# corregir actualizando la imagen, asi que se reporta en la pestana Security
+# (SARIF) pero no bloquea. Las que si tienen parche bloquean.
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'infrastructure/terraform/**'
-      - 'src/backend/**'
-      - 'src/frontend/**'
-      - 'infrastructure/**'
-      - '.github/workflows/trivy-scan.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'infrastructure/terraform/**'
-      - 'src/backend/**'
-      - 'src/frontend/**'
       - 'infrastructure/**'
+      - 'ia-ops/fastapi_service/**'
       - '.github/workflows/trivy-scan.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+      - 'ia-ops/fastapi_service/**'
+      - '.github/workflows/trivy-scan.yml'
+  workflow_dispatch:
+    inputs:
+      imagen_prueba:
+        description: 'Imagen extra a escanear para demostrar el bloqueo (ej. python:3.8-slim-buster). Vacio = ninguna.'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
-  iac-security-scan:
-    name: Escaneo de Seguridad IaC Terraform (HT-44 T02)
+  image-scan:
+    name: Trivy imagen (${{ matrix.nombre }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: n8n
+            origen: pull
+          - nombre: postgres
+            origen: build
+            contexto: infrastructure
+            dockerfile: infrastructure/postgres.Dockerfile
+          - nombre: api-inferencia
+            origen: build
+            contexto: ia-ops/fastapi_service
+            dockerfile: ia-ops/fastapi_service/Dockerfile
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      # La version de n8n se lee del template de Lightsail para escanear
+      # exactamente la imagen que se despliega en produccion.
+      - name: Resolver imagen de n8n desplegada
+        if: matrix.origen == 'pull'
+        id: n8n
+        run: |
+          IMAGEN=$(jq -r '.. | .image? // empty' infrastructure/lightsail-containers.json.template | grep n8n | head -n1)
+          if [ -z "$IMAGEN" ]; then
+            echo "No se encontro la imagen de n8n en lightsail-containers.json.template" >&2
+            exit 1
+          fi
+          echo "Imagen de n8n en produccion: $IMAGEN"
+          echo "ref=$IMAGEN" >> "$GITHUB_OUTPUT"
+
+      - name: Construir imagen local
+        if: matrix.origen == 'build'
+        run: docker build -t "urbanpulse/${{ matrix.nombre }}:${{ github.sha }}" -f "${{ matrix.dockerfile }}" "${{ matrix.contexto }}"
+
+      - name: Definir referencia de imagen
+        id: img
+        run: |
+          if [ "${{ matrix.origen }}" = "pull" ]; then
+            echo "ref=${{ steps.n8n.outputs.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=urbanpulse/${{ matrix.nombre }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Reporte completo (CRITICAL y HIGH) a la pestana Security. No bloquea.
+      - name: Trivy - reporte SARIF
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.img.outputs.ref }}
+          format: sarif
+          output: trivy-${{ matrix.nombre }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+
+      - name: Subir SARIF a GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.nombre }}.sarif
+          category: trivy-${{ matrix.nombre }}
+
+      # Gate: falla si hay una CRITICAL con parche disponible.
+      - name: Trivy - gate CRITICAL (bloquea)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.img.outputs.ref }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+  # Evidencia del criterio "una imagen vulnerable de prueba bloquea el merge":
+  # se ejecuta a mano con workflow_dispatch y una imagen antigua.
+  imagen-prueba:
+    name: Trivy imagen de prueba (demostracion de bloqueo)
+    if: github.event_name == 'workflow_dispatch' && inputs.imagen_prueba != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trivy - gate CRITICAL sobre imagen de prueba
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ inputs.imagen_prueba }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+  # Configuracion de Dockerfiles y compose (misconfiguraciones). Informativo:
+  # el analisis de IaC que bloquea va en terraform-ci.yml (HT-44 T02).
+  config-scan:
+    name: Trivy config de infraestructura (informativo)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Escanear IaC Terraform con Trivy
-        uses: aquasecurity/trivy-action@master
+      - name: Trivy config
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'config'
-          scan-ref: 'infrastructure/terraform'
-          format: 'table'
+          scan-type: config
+          scan-ref: infrastructure
+          format: sarif
+          output: trivy-config.sarif
+          severity: CRITICAL,HIGH
           exit-code: '0'
-          severity: 'CRITICAL,HIGH,MEDIUM'
 
-  container-security-scan:
-    name: Escaneo de Seguridad de Configuración de Contenedores (HT-44 T01)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v4
-
-      - name: Escanear Dockerfile Postgres e Infraestructura con Trivy
-        uses: aquasecurity/trivy-action@master
+      - name: Subir SARIF a GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          scan-type: 'config'
-          scan-ref: 'infrastructure'
-          format: 'table'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
+          sarif_file: trivy-config.sarif
+          category: trivy-config
