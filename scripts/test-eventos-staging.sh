@@ -86,7 +86,7 @@ ID_FALLO="$(gen_uuid)"
 
 echo "Endpoint: ${ENDPOINT}"
 echo "----------------------------------------------------------------"
-caso "a) sin header X-Event-Token"            401 none  "$(sobre "$(gen_uuid)" reporte.creado "$NOW" "$DATOS_OK")"
+caso "a) sin header X-Event-Token"            403 none  "$(sobre "$(gen_uuid)" reporte.creado "$NOW" "$DATOS_OK")"
 caso "b) token incorrecto"                    403 wrong "$(sobre "$(gen_uuid)" reporte.creado "$NOW" "$DATOS_OK")"
 caso "c) evento valido reporte.creado"        202 ok    "$(sobre "$ID_VALIDO" reporte.creado "$NOW" "$DATOS_OK")"
 caso "d) mismo id repetido (idempotencia)"    202 ok    "$(sobre "$ID_VALIDO" reporte.creado "$NOW" "$DATOS_OK")"

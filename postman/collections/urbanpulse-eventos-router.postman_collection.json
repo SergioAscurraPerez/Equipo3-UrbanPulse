@@ -25,14 +25,14 @@
   ],
   "item": [
     {
-      "name": "a) Sin header X-Event-Token -> 401",
+      "name": "a) Sin header X-Event-Token -> 403",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('HTTP 401 sin header X-Event-Token', () => pm.response.to.have.status(401));",
+              "pm.test('HTTP 403 sin header X-Event-Token', () => pm.response.to.have.status(403));",
               "pm.test('No devuelve estado \"recibido\"', () => {",
               "  let json = {};",
               "  try { json = pm.response.json(); } catch (e) { /* body no-JSON */ }",
@@ -70,7 +70,7 @@
             "eventos"
           ]
         },
-        "description": "Sin el header de autenticacion, el Header Auth del webhook rechaza la peticion antes de validar el sobre. No se persiste nada."
+        "description": "Sin el header de autenticacion, el Header Auth del webhook responde 403 (\"Authorization data is wrong!\"), igual que con un token incorrecto, antes de validar el sobre. No se persiste nada."
       }
     },
     {
