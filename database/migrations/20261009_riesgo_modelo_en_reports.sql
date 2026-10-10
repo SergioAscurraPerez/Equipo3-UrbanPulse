@@ -10,14 +10,16 @@
 -- tercer valor.
 
 ALTER TABLE reports
-    ADD COLUMN IF NOT EXISTS riesgo_modelo_version TEXT,
-    ADD COLUMN IF NOT EXISTS riesgo_origen TEXT;
+ADD COLUMN IF NOT EXISTS riesgo_modelo_version TEXT,
+ADD COLUMN IF NOT EXISTS riesgo_origen TEXT;
 
 ALTER TABLE reports
-    ADD CONSTRAINT reports_riesgo_origen_check
-        CHECK (riesgo_origen IS NULL OR riesgo_origen IN ('modelo', 'heuristico'));
+ADD CONSTRAINT reports_riesgo_origen_check
+CHECK (riesgo_origen IS NULL OR riesgo_origen IN ('modelo', 'heuristico'));
 
 COMMENT ON COLUMN reports.riesgo_modelo_version IS
-    'Version del modelo que calculo el riesgo (ej. "riesgo_vial@3"), o NULL si riesgo_origen = heuristico.';
+'Version del modelo que calculo el riesgo (ej. "riesgo_vial@3"), o NULL '
+'si riesgo_origen = heuristico.';
 COMMENT ON COLUMN reports.riesgo_origen IS
-    '"modelo" si /predict respondio a tiempo; "heuristico" si n8n usó el calculo de respaldo (timeout o error de la API).';
+'"modelo" si /predict respondio a tiempo; "heuristico" si n8n usó el '
+'calculo de respaldo (timeout o error de la API).';
