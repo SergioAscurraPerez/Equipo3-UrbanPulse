@@ -6,30 +6,29 @@
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 1
+              "field": "hours"
             }
           ]
         }
       },
-      "id": "rep-schedule",
+      "id": "00bff5af-f188-4ee5-9b0e-83ea0d980442",
       "name": "Cada Hora",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        100,
-        200
+        0,
+        0
       ]
     },
     {
       "parameters": {},
-      "id": "rep-manual",
+      "id": "9c12cfe2-fe5e-458a-8e40-417001924cf9",
       "name": "Ejecutar a Mano",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        100,
-        400
+        0,
+        208
       ]
     },
     {
@@ -38,40 +37,46 @@
         "query": "SELECT id, tipo, fecha, origen, datos\nFROM eventos\nWHERE (estado = 'fallido' AND intentos < 3)\n   OR (estado = 'recibido' AND actualizado_en < now() - interval '10 minutes')\nORDER BY creado_en\nLIMIT 50;",
         "options": {}
       },
-      "id": "rep-buscar",
+      "id": "b1e66412-b44d-4e2a-82c9-422133c072c0",
       "name": "Buscar Eventos Pendientes",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        350,
-        300
+        256,
+        112
       ]
     },
     {
       "parameters": {
-        "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "",
+          "value": "NMpdGqSfzerYqLbD",
           "mode": "list",
+          "cachedResultUrl": "/workflow/NMpdGqSfzerYqLbD",
           "cachedResultName": "UrbanPulse - Despachar Evento (HT-51 T02)"
         },
-        "mode": "each",
-        "options": {
-          "waitForSubWorkflow": true
-        }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
       },
-      "id": "rep-despachar",
-      "name": "Despachar Evento",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
+      "typeVersion": 1.3,
       "position": [
-        600,
-        300
+        480,
+        112
       ],
-      "onError": "continueRegularOutput"
+      "id": "b90dd6ac-2cf5-47c7-a5e5-fd0573540f78",
+      "name": "Call 'UrbanPulse - Despachar Evento (HT-51 T02)'",
+      "onError": "continueErrorOutput"
     }
   ],
+  "pinData": {},
   "connections": {
     "Cada Hora": {
       "main": [
@@ -99,7 +104,7 @@
       "main": [
         [
           {
-            "node": "Despachar Evento",
+            "node": "Call 'UrbanPulse - Despachar Evento (HT-51 T02)'",
             "type": "main",
             "index": 0
           }
@@ -109,6 +114,15 @@
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "de9bfcfb-3aaa-444d-a660-591ba8cd8f74",
+  "meta": {
+    "instanceId": "e6d72167c1ecd2ac7c8a12ee82849d96518d006f467c440b0d2e55c1d4558a40"
+  },
+  "nodeGroups": [],
+  "id": "t6jQ5xNb0t1NPLQW",
+  "tags": []
 }
