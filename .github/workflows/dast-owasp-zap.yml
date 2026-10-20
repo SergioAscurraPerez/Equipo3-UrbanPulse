@@ -166,7 +166,10 @@ jobs:
       - name: Ejecutar ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.15.0
         with:
-          target: ${{ needs.preparar.outputs.url }}
+          # GitHub descarta las salidas de un job que contienen un secret, asi que
+          # en una corrida manual sin target_url la URL de DAST_BASELINE_URL no
+          # llega por needs.preparar.outputs.url y ZAP arrancaba sin objetivo.
+          target: ${{ needs.preparar.outputs.url || secrets.DAST_BASELINE_URL }}
           rules_file_name: '.zap/rules.tsv'
           # -a incluye las alertas informativas (el SARIF las marca como "note");
           # -j usa el spider AJAX, necesario porque el host es una SPA de React
