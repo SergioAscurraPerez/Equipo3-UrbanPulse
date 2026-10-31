@@ -226,3 +226,18 @@ Crear un operativo (2.2) y cambiar su estado (2.5) son **una sola sentencia SQL*
 2. Importar `src/n8n-workflows/production/urbanpulse-operativos.json`. Las credenciales *Postgres account* y *UrbanPulse Event Router Header Auth* vienen con su id de la instancia de producción; en otra instancia hay que volver a seleccionarlas en cada nodo.
 3. Reimportar el enrutador de eventos (`urbanpulse-event-router.json`), que ahora acepta los dos tipos nuevos, y publicarlo.
 4. Publicar los dos workflows y comprobar el ciclo completo: crear, asignar, cerrar y un `403` con un token de ciudadano.
+
+---
+
+## 6. Pruebas (HU-09 T05)
+
+**Autor:** Fabio Saavedra.
+
+| Suite | Archivo | Qué comprueba | Dónde corre |
+|---|---|---|---|
+| Playwright | `ia-ops/tests/tests/operativos.spec.ts` | El operador agrupa por zona, crea el operativo, le asigna una cuadrilla y lo cierra; un `403` del backend se muestra en el tablero; un ciudadano que abre `/incidentes` vuelve al inicio sin pedir datos de operativos. | `playwright.yml` |
+| Newman | `postman/collections/urbanpulse-operativos.postman_collection.json` | Los tres webhooks de lectura (2.1, 2.3 y 2.4) responden `200` con el formato del contrato para un operador y `403 rol_no_permitido` para un ciudadano. | `postman-newman.yml`, job `newman-operativos` |
+
+- Playwright simula el backend con `page.route()` y un estado en memoria; el ciclo completo contra n8n real no se automatiza porque crear y cerrar operativos escribe en la base. Para que `fetchN8n` llegue a esas rutas, `playwright.config.ts` define `TE_N8N_BASE_URL` (un puerto sin servicio) en los servidores de Vite.
+- Newman son solo lecturas: se puede correr contra staging sin dejar datos. Variables: `base_url` (sin `/` final), `token_operador` y `token_ciudadano`; plantilla en `postman/environments/urbanpulse-operativos.postman_environment.example.json`. En CI, el job usa los secrets `DAST_API_BASE_URL`, `NEWMAN_TOKEN_OPERADOR` y `NEWMAN_TOKEN_CIUDADANO` (los tokens caducan a las 12 h) y se salta con un aviso si falta alguno.
+- Los resultados quedan donde lee `scripts/certificar-sla.mjs`: `ia-ops/tests/reportes/playwright.json` y `postman/reportes/operativos.json`. Sumar la suite a `certificacion-sla.yml` es HT-37 T02.

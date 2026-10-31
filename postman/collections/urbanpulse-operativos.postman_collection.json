@@ -1,0 +1,282 @@
+{
+  "info": {
+    "_postman_id": "5d3f8a21-6b4c-4e7a-9d10-7c2e1b9a4f36",
+    "name": "UrbanPulse - Operativos (HU-09 T05)",
+    "description": "Coleccion Newman de HU-09 T05. Prueba los tres webhooks de lectura del contrato C2 (docs/OPERATIVOS_CONTRACT.md): GET incidentes-por-zona, GET operativos y GET cuadrillas, con token de operador (200 y formato del contrato) y con token de ciudadano (403 rol_no_permitido).\n\nSon solo lecturas: no crea ni cierra operativos, asi que se puede correr contra staging sin dejar datos. El ciclo crear, asignar y cerrar lo cubre Playwright (ia-ops/tests/tests/operativos.spec.ts).\n\nVariables de entorno: base_url (sin / final), token_operador y token_ciudadano (tokens del login; caducan a las 12 h). No se guardan valores reales en el repo.\n\nEjecucion:\nnewman run postman/collections/urbanpulse-operativos.postman_collection.json -e postman/environments/urbanpulse-operativos.postman_environment.example.json --env-var base_url=$BASE_URL --env-var token_operador=$TOKEN_OPERADOR --env-var token_ciudadano=$TOKEN_CIUDADANO",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Operador (token de operador -> 200)",
+      "item": [
+        {
+          "name": "GET /incidentes-por-zona con token de operador -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 con token de operador', () => pm.response.to.have.status(200));",
+                  "pm.test('Responde JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const json = pm.response.json();",
+                  "pm.test('Es una lista', () => pm.expect(json).to.be.an('array'));",
+                  "pm.test('Cada zona trae zona, zona_id, total e incidentes', () => {",
+                  "  json.forEach(z => {",
+                  "    pm.expect(z).to.have.all.keys('zona', 'zona_id', 'total', 'incidentes');",
+                  "    pm.expect(z.total).to.equal(z.incidentes.length);",
+                  "  });",
+                  "});",
+                  "pm.test('Ordenadas por total descendente', () => {",
+                  "  const totales = json.map(z => z.total);",
+                  "  pm.expect(totales).to.eql([...totales].sort((a, b) => b - a));",
+                  "});",
+                  "pm.test('Cada incidente trae id, tipo, severidad y creado', () => {",
+                  "  json.forEach(z => z.incidentes.forEach(i => pm.expect(i).to.include.all.keys('id', 'tipo', 'severidad', 'creado')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_operador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/incidentes-por-zona",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "incidentes-por-zona"
+              ]
+            },
+            "description": "Contrato C2 2.1. El token de operador pasa el rol minimo y el webhook responde con los datos."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /operativos con token de operador -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 con token de operador', () => pm.response.to.have.status(200));",
+                  "pm.test('Responde JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const json = pm.response.json();",
+                  "pm.test('Es una lista', () => pm.expect(json).to.be.an('array'));",
+                  "pm.test('Cada operativo trae el formato del contrato', () => {",
+                  "  json.forEach(o => {",
+                  "    pm.expect(o).to.include.all.keys('id', 'zona', 'zona_id', 'estado', 'cuadrilla', 'reportes', 'creado_en', 'asignado_en', 'cerrado_en');",
+                  "    pm.expect(['planificado', 'asignado', 'en_curso', 'cerrado']).to.include(o.estado);",
+                  "  });",
+                  "});",
+                  "pm.test('Un operativo planificado no tiene cuadrilla y uno cerrado trae cerrado_en', () => {",
+                  "  json.forEach(o => {",
+                  "    if (o.estado === 'planificado') pm.expect(o.cuadrilla).to.equal(null);",
+                  "    if (o.estado === 'cerrado') pm.expect(o.cerrado_en).to.be.a('string');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_operador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/operativos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "operativos"
+              ]
+            },
+            "description": "Contrato C2 2.3. El token de operador pasa el rol minimo y el webhook responde con los datos."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /cuadrillas con token de operador -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 con token de operador', () => pm.response.to.have.status(200));",
+                  "pm.test('Responde JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "const json = pm.response.json();",
+                  "pm.test('Es una lista', () => pm.expect(json).to.be.an('array'));",
+                  "pm.test('Cada cuadrilla trae id, nombre y especialidad validas', () => {",
+                  "  json.forEach(c => {",
+                  "    pm.expect(c).to.have.all.keys('id', 'nombre', 'especialidad');",
+                  "    pm.expect(['bacheo', 'senalizacion', 'semaforos', 'limpieza']).to.include(c.especialidad);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_operador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/cuadrillas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "cuadrillas"
+              ]
+            },
+            "description": "Contrato C2 2.4. El token de operador pasa el rol minimo y el webhook responde con los datos."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Ciudadano (token de ciudadano -> 403)",
+      "item": [
+        {
+          "name": "GET /incidentes-por-zona con token de ciudadano -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403 con token de ciudadano', () => pm.response.to.have.status(403));",
+                  "pm.test('Cuerpo rol_no_permitido', () => pm.expect(pm.response.json()).to.eql({ error: 'rol_no_permitido' }));",
+                  "pm.test('No filtra datos de operativos', () => pm.expect(pm.response.text()).to.not.match(/zona_id|cuadrilla|incidentes/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ciudadano}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/incidentes-por-zona",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "incidentes-por-zona"
+              ]
+            },
+            "description": "Contrato C2 2.1 y C1 (AUTH_TOKEN_CONTRACT.md). El ciudadano tiene sesion valida pero no el rol minimo: 403, no 401, y sin datos."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /operativos con token de ciudadano -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403 con token de ciudadano', () => pm.response.to.have.status(403));",
+                  "pm.test('Cuerpo rol_no_permitido', () => pm.expect(pm.response.json()).to.eql({ error: 'rol_no_permitido' }));",
+                  "pm.test('No filtra datos de operativos', () => pm.expect(pm.response.text()).to.not.match(/zona_id|cuadrilla|incidentes/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ciudadano}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/operativos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "operativos"
+              ]
+            },
+            "description": "Contrato C2 2.3 y C1 (AUTH_TOKEN_CONTRACT.md). El ciudadano tiene sesion valida pero no el rol minimo: 403, no 401, y sin datos."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /cuadrillas con token de ciudadano -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403 con token de ciudadano', () => pm.response.to.have.status(403));",
+                  "pm.test('Cuerpo rol_no_permitido', () => pm.expect(pm.response.json()).to.eql({ error: 'rol_no_permitido' }));",
+                  "pm.test('No filtra datos de operativos', () => pm.expect(pm.response.text()).to.not.match(/zona_id|cuadrilla|incidentes/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ciudadano}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/cuadrillas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "cuadrillas"
+              ]
+            },
+            "description": "Contrato C2 2.4 y C1 (AUTH_TOKEN_CONTRACT.md). El ciudadano tiene sesion valida pero no el rol minimo: 403, no 401, y sin datos."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

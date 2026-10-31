@@ -57,3 +57,66 @@ jobs:
           name: newman-report
           path: newman-report/
           retention-days: 30
+
+  # HU-09 T05: webhooks de operativos (contrato C2) con token de operador (200)
+  # y de ciudadano (403). Son solo lecturas, asi que no deja datos en staging.
+  # El reporte json va a postman/reportes/, la carpeta que lee
+  # scripts/certificar-sla.mjs.
+  #
+  # Secrets: DAST_API_BASE_URL (base de staging, termina en /webhook),
+  # NEWMAN_TOKEN_OPERADOR y NEWMAN_TOKEN_CIUDADANO (token del login de una
+  # cuenta de staging de cada rol; caducan a las 12 h). Si falta alguno, el job
+  # se salta con un aviso en vez de fallar con un 401 que no dice nada.
+  newman-operativos:
+    name: Ejecutar colección UrbanPulse - Operativos (HU-09)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar los secrets de la suite
+        id: secrets
+        env:
+          BASE_URL: ${{ secrets.DAST_API_BASE_URL }}
+          TOKEN_OPERADOR: ${{ secrets.NEWMAN_TOKEN_OPERADOR }}
+          TOKEN_CIUDADANO: ${{ secrets.NEWMAN_TOKEN_CIUDADANO }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$TOKEN_OPERADOR" ] || [ -z "$TOKEN_CIUDADANO" ]; then
+            echo "::warning::Faltan DAST_API_BASE_URL, NEWMAN_TOKEN_OPERADOR o NEWMAN_TOKEN_CIUDADANO. Se salta la suite de operativos."
+            echo "listo=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configurar Node.js
+        if: steps.secrets.outputs.listo == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Newman y el reporter HTML
+        if: steps.secrets.outputs.listo == 'true'
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Correr la colección de operativos
+        if: steps.secrets.outputs.listo == 'true'
+        env:
+          BASE_URL: ${{ secrets.DAST_API_BASE_URL }}
+          TOKEN_OPERADOR: ${{ secrets.NEWMAN_TOKEN_OPERADOR }}
+          TOKEN_CIUDADANO: ${{ secrets.NEWMAN_TOKEN_CIUDADANO }}
+        run: |
+          # La coleccion antepone /webhook a cada ruta; el secret ya lo trae.
+          base="${BASE_URL%/}"
+          base="${base%/webhook}"
+          mkdir -p postman/reportes
+          newman run "postman/collections/urbanpulse-operativos.postman_collection.json"             --env-var "base_url=$base"             --env-var "token_operador=$TOKEN_OPERADOR"             --env-var "token_ciudadano=$TOKEN_CIUDADANO"             --reporters cli,json,htmlextra             --reporter-json-export postman/reportes/operativos.json             --reporter-htmlextra-export newman-report/operativos-report.html
+
+      - name: Subir reportes
+        if: ${{ steps.secrets.outputs.listo == 'true' && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-operativos-report
+          path: |
+            newman-report/
+            postman/reportes/operativos.json
+          retention-days: 30
