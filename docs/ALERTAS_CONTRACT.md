@@ -151,3 +151,22 @@ El `UPDATE` filtra por `id` **y** `usuario_id` del token.
 - Ningún endpoint devuelve la ubicación de otros usuarios.
 
 Un cambio de este contrato se anuncia en la Daily antes de hacerlo (regla 3 del guion del Sprint 4).
+
+---
+
+## 5. Pruebas (HU-10 T06)
+
+**Autor:** Fabio Saavedra.
+
+| Suite | Archivo | Qué comprueba | Dónde corre |
+|---|---|---|---|
+| Newman | `postman/collections/urbanpulse-alertas-cercanas.postman_collection.json` | Con un reporte crítico creado por el chat y `reporte.creado` publicado: el ciudadano a **499 m** recibe la alerta (`distancia_m` 499) y el de **501 m** no; el autor no recibe la suya; `GET /alertas` sin token da `401`; un ciudadano ajeno que descarta recibe `404 alerta_no_encontrada` y la alerta sigue pendiente; el dueño descarta (`200`, y `200` otra vez); la alerta descartada no aparece ni aunque el evento se reenvíe con otro `id`. | `postman-newman.yml`, job `newman-alertas` |
+| Playwright | `ia-ops/tests/tests/alertas-cercanas.spec.ts` | El aviso aparece con una alerta pendiente; al cerrarlo la app llama a `POST /alertas/descartar` con su `id` y no vuelve (ni al recargar ni en la consulta siguiente); sin alertas no hay aviso; con permiso de ubicación se envía `POST /ubicacion` y sin permiso no se envía nada. | `playwright.yml` |
+
+- **404 y no 403.** El guion de la tarea decía `403` para el ciudadano ajeno; la sección 2.3 fijó `404`, y Newman espera `404`.
+- **Playwright espera a HU-10 T04.** `AvisoAlerta` aún no está en el host, así que el spec se omite solo (busca el componente en `src/frontend/src`) en vez de fallar. Al mezclar T04 hay que confirmar los localizadores `aviso` y `cerrar` del inicio del archivo (`role="alert"` con la distancia, y un botón «cerrar/descartar/entendido»).
+- **Newman escribe en staging:** 3 usuarios (`alertas-t06-<sufijo>-<rol>@ejemplo.com`) y 1 reporte por corrida, sin endpoint para borrarlos. No apuntar a producción. Variables: `base_url` (sin `/` final) y `event_token`; plantilla en `postman/environments/urbanpulse-alertas-cercanas.postman_environment.example.json`. En CI usa los secrets `DAST_API_BASE_URL` y `EVENT_ROUTER_TOKEN` y se salta con un aviso si falta alguno.
+- **Dependencia del clasificador.** El reporte crítico sale de Gemini/Groq (`severity = 'alta'`, 0.1); la colección lo comprueba y falla con un mensaje claro si el texto de prueba no se clasifica como `alta`. También da por hecho que el chat completa el reporte en tres turnos (descripción con ubicación, «no tengo foto», «si»).
+- **Quién publica `reporte.creado`.** La colección lo publica ella misma en `/eventos`; así prueba el suscriptor aunque Central no emita el evento (la plantilla `HT-51 - Publicar reporte.creado` se pega a mano en Central).
+- Los 499 m / 501 m se calculan en el eje norte desde el reporte con 110 622 m por grado de latitud (WGS84 a 12° S), de modo que el margen respecto al radio de 500 m es de 1 m en cada lado.
+- Los resultados quedan donde lee `scripts/certificar-sla.mjs`: `postman/reportes/alertas-cercanas.json` y `ia-ops/tests/reportes/playwright.json`. Sumar la suite a `certificacion-sla.yml` es HT-37 T02.

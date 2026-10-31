@@ -36,17 +36,19 @@ jobs:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_CHAT_WEBHOOK_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+          FOLDER: ${{ inputs.folder }}
         run: |
-          FOLDER_ARG=""
-          if [ -n "${{ inputs.folder }}" ]; then
-            FOLDER_ARG="--folder ${{ inputs.folder }}"
+          # Arreglo en vez de cadena: el nombre de la carpeta lleva espacios.
+          FOLDER_ARG=()
+          if [ -n "$FOLDER" ]; then
+            FOLDER_ARG=(--folder "$FOLDER")
           fi
 
           newman run "postman/collections/UrbanPulse - Pruebas QA/.resources/UrbanPulse  Pruebas QA.postman_collection.json" \
             --env-var "n8n_webhook_url=$N8N_WEBHOOK_URL" \
             --env-var "gemini_api_key=$GEMINI_API_KEY" \
             --env-var "tomtom_api_key=$TOMTOM_API_KEY" \
-            $FOLDER_ARG \
+            "${FOLDER_ARG[@]}" \
             --reporters cli,htmlextra \
             --reporter-htmlextra-export newman-report/report.html
 
@@ -119,4 +121,71 @@ jobs:
           path: |
             newman-report/
             postman/reportes/operativos.json
+          retention-days: 30
+
+  # HU-10 T06: alertas cercanas (contrato C3). Crea tres ciudadanos (autor, uno a
+  # 499 m y otro a 501 m) y un reporte critico por el chat, publica reporte.creado
+  # y revisa /alertas, el descarte y el 404 de un ciudadano ajeno. ESCRIBE en la
+  # base de staging (3 usuarios y 1 reporte por corrida): no apuntar a produccion.
+  # El reporte json va a postman/reportes/, la carpeta que lee
+  # scripts/certificar-sla.mjs.
+  #
+  # Secrets: DAST_API_BASE_URL (base de staging, termina en /webhook) y
+  # EVENT_ROUTER_TOKEN (X-Event-Token del enrutador de eventos). Si falta alguno,
+  # el job se salta con un aviso.
+  newman-alertas:
+    name: Ejecutar colección UrbanPulse - Alertas cercanas (HU-10)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar los secrets de la suite
+        id: secrets
+        env:
+          BASE_URL: ${{ secrets.DAST_API_BASE_URL }}
+          EVENT_TOKEN: ${{ secrets.EVENT_ROUTER_TOKEN }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$EVENT_TOKEN" ]; then
+            echo "::warning::Faltan DAST_API_BASE_URL o EVENT_ROUTER_TOKEN. Se salta la suite de alertas cercanas."
+            echo "listo=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configurar Node.js
+        if: steps.secrets.outputs.listo == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Newman y el reporter HTML
+        if: steps.secrets.outputs.listo == 'true'
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Correr la colección de alertas cercanas
+        if: steps.secrets.outputs.listo == 'true'
+        env:
+          BASE_URL: ${{ secrets.DAST_API_BASE_URL }}
+          EVENT_TOKEN: ${{ secrets.EVENT_ROUTER_TOKEN }}
+        run: |
+          # La coleccion antepone /webhook a cada ruta; el secret ya lo trae.
+          base="${BASE_URL%/}"
+          base="${base%/webhook}"
+          mkdir -p postman/reportes
+          newman run "postman/collections/urbanpulse-alertas-cercanas.postman_collection.json" \
+            --env-var "base_url=$base" \
+            --env-var "event_token=$EVENT_TOKEN" \
+            --reporters cli,json,htmlextra \
+            --reporter-json-export postman/reportes/alertas-cercanas.json \
+            --reporter-htmlextra-export newman-report/alertas-cercanas-report.html
+
+      - name: Subir reportes
+        if: ${{ steps.secrets.outputs.listo == 'true' && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-alertas-cercanas-report
+          path: |
+            newman-report/
+            postman/reportes/alertas-cercanas.json
           retention-days: 30
