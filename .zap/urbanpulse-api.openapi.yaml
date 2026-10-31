@@ -27,6 +27,11 @@ servers:
   - url: __ZAP_API_BASE_URL__
     description: Base de los webhooks n8n, inyectada en tiempo de ejecucion.
 
+# Sin override por ruta: los webhooks publicos (auth/*, reports-list, mapa) ignoran
+# la cabecera y los protegidos la exigen, asi que el scan la manda siempre.
+security:
+  - bearerAuth: []
+
 tags:
   - name: auth
     description: Registro, inicio de sesion y recuperacion de contrasena.
@@ -231,6 +236,17 @@ paths:
         '200': { $ref: '#/components/responses/Ok' }
 
 components:
+  # HT-36 T07: contrato C1 (docs/AUTH_TOKEN_CONTRACT.md). El API scan manda este
+  # token en cada peticion (replacer de ZAP en dast-owasp-zap.yml, secret
+  # DAST_API_TOKEN); la spec lo declara para que ZAP y la documentacion coincidan.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Token del login: base64url(payload) + "." + HMAC-SHA256 en hexadecimal.
+        Se envia como "Authorization: Bearer <token>".
+
   responses:
     Ok:
       description: Respuesta del flujo n8n.

@@ -57,6 +57,7 @@ si se quiere también el escaneo activo.
 | --- | --- |
 | `DAST_API_BASE_URL` | Base de los webhooks n8n **de staging** (ej. `https://<n8n-staging>/webhook`) |
 | `DAST_API_PROD_BASE_URL` | Base de los webhooks n8n **de producción**, solo para el escaneo pasivo de las rutas GET |
+| `DAST_API_TOKEN` | Token de un **operador de staging** (contrato C1, `docs/AUTH_TOKEN_CONTRACT.md`). El API scan lo envía como `Authorization: Bearer` para llegar a los webhooks protegidos (HT-36 T07). Caduca a las 12 h: renovarlo antes de cada corrida |
 | `DAST_BASELINE_URL` | Solo para corridas manuales sin `target_url` |
 
 La URL de n8n no está versionada: la spec lleva el marcador
