@@ -1,0 +1,23 @@
+{
+  "model_name": "urbanpulse_risk_classifier",
+  "active_version": "1.0.0",
+  "psi_score": 0.0,
+  "psi_umbral": 0.2,
+  "severidad": "ninguna",
+  "f1_actual": 0.9237,
+  "f1_baseline": 0.941,
+  "deriva": false,
+  "lote_referencia": "predicciones_muestra.csv",
+  "lote_auditado": "predicciones_muestra.csv",
+  "timestamp": "2026-10-06T02:40:25.651136+00:00",
+  "accion_requerida": "ninguna",
+  "resumen": "El PSI de 'probabilidad' es 0.0 (umbral 0.2). El tramo 0.00-0.20 cambio +0.0% respecto al lote de referencia del modelo 1.0.0.",
+  "por_tramo": {
+    "0.00-0.20": 0.0,
+    "0.20-0.40": 0.0,
+    "0.40-0.55": 0.0,
+    "0.55-0.70": 0.0,
+    "0.70-0.85": 0.0,
+    "0.85-1.00": 0.0
+  }
+}

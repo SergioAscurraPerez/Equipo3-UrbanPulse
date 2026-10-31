@@ -397,6 +397,232 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Etapa 7 - Seguridad HT-36 (requiere base_url y token_ciudadano)",
+      "item": [
+        {
+          "name": "01 - Sin token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401 sin cabecera Authorization', () => pm.response.to.have.status(401));",
+                  "pm.test('Cuerpo error = token_invalido', () => pm.expect(pm.response.json().error).to.eql('token_invalido'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/reports-history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "reports-history"
+              ]
+            },
+            "description": "reports-history exige token desde el 30/10/2026 (docs/AUTH_TOKEN_CONTRACT.md). Sin cabecera Authorization responde 401."
+          }
+        },
+        {
+          "name": "02 - Firma alterada -> 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Toma el token valido del entorno y cambia el ultimo caracter de la firma (hex).",
+                  "const token = pm.environment.get('token_ciudadano') || '';",
+                  "if (!token || token.indexOf('.') < 0) { throw new Error('Falta token_ciudadano en el entorno de staging.'); }",
+                  "const ultimo = token.slice(-1);",
+                  "const cambio = ultimo === '0' ? '1' : '0';",
+                  "pm.collectionVariables.set('token_firma_alterada', token.slice(0, -1) + cambio);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401 con la firma HMAC alterada', () => pm.response.to.have.status(401));",
+                  "pm.test('Cuerpo error = token_invalido', () => pm.expect(pm.response.json().error).to.eql('token_invalido'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_firma_alterada}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/reports-history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "reports-history"
+              ]
+            },
+            "description": "El payload no cambia, solo el ultimo caracter de la firma HMAC-SHA256. El token alterado se calcula en el pre-request a partir de token_ciudadano; nunca se guarda."
+          }
+        },
+        {
+          "name": "03 - Ciudadano en report-resolve -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403 para rol ciudadano', () => pm.response.to.have.status(403));",
+                  "pm.test('Cuerpo error = rol_no_permitido', () => pm.expect(pm.response.json().error).to.eql('rol_no_permitido'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ciudadano}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/report-resolve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "report-resolve"
+              ]
+            },
+            "description": "report-resolve pide rol minimo operador. Con un token valido de ciudadano responde 403 y no cambia el estado del reporte.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\": 1, \"estado\": \"resuelto\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "04 - Origin ajeno -> sin CORS para ese origen",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const acao = pm.response.headers.get('Access-Control-Allow-Origin');",
+                  "const ajeno = pm.environment.get('origin_ajeno') || 'https://atacante.example';",
+                  "pm.test('No refleja el Origin ajeno', () => pm.expect(acao).to.not.equal(ajeno));",
+                  "pm.test('No usa comodin *', () => pm.expect(acao).to.not.equal('*'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{origin_ajeno}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/reports-list",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "reports-list"
+              ]
+            },
+            "description": "reports-list es publico (el mapa no exige login), asi que aisla el CORS. n8n 2.x responde con el primer origen de la lista (produccion) y el navegador bloquea la respuesta; lo que se verifica es que NUNCA se devuelva el origen ajeno ni *. Ver docs/CORS_WEBHOOKS.md."
+          }
+        },
+        {
+          "name": "05 - /auth/forgot sin enlace en la respuesta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.text();",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { /* cuerpo no JSON */ }",
+                  "pm.test('No devuelve reset_url ni reset_token', () => {",
+                  "  pm.expect(json).to.not.have.property('reset_url');",
+                  "  pm.expect(json).to.not.have.property('reset_token');",
+                  "});",
+                  "pm.test('El cuerpo no contiene un enlace de recuperacion', () => pm.expect(cuerpo).to.not.match(/reset_token=|reset_url/i));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/webhook/urbanpulse/auth/forgot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhook",
+                "urbanpulse",
+                "auth",
+                "forgot"
+              ]
+            },
+            "description": "Depende de HT-36 T04 (Emily): el enlace debe viajar por correo, no en la respuesta. Hasta que T04 este en staging este caso falla A PROPOSITO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{correo_prueba}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 }

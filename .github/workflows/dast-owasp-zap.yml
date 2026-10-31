@@ -317,6 +317,20 @@ jobs:
           fi
           echo "listo=true" >> "$GITHUB_OUTPUT"
 
+      - name: Exigir el token del API scan (HT-36 T07)
+        # Sin token, ZAP solo vería el 401 de los webhooks protegidos (reports-history,
+        # report-resolve, operativos, alertas...) y daria el escaneo por limpio sin
+        # haberlos probado.
+        if: ${{ steps.sonda.outputs.listo == 'true' }}
+        env:
+          DAST_API_TOKEN: ${{ secrets.DAST_API_TOKEN }}
+        run: |
+          if [ -z "$DAST_API_TOKEN" ]; then
+            echo "::error::Falta el secret DAST_API_TOKEN (token de un operador de staging, contrato C1)."
+            exit 1
+          fi
+          echo "::add-mask::$DAST_API_TOKEN"
+
       - name: Ejecutar ZAP API Scan
         if: ${{ steps.sonda.outputs.listo == 'true' }}
         uses: zaproxy/action-api-scan@v0.10.0
@@ -326,7 +340,9 @@ jobs:
           rules_file_name: '.zap/rules.tsv'
           # Tope del escaneo activo: 15 min en total y 2 por regla. Sin esto ZAP
           # sigue lanzando payloads mientras el webhook responde lento.
-          cmd_options: '-a -z "-config scanner.maxScanDurationInMins=15 -config scanner.maxRuleDurationInMins=2"'
+          # El replacer de ZAP pone "Authorization: Bearer <token>" en cada peticion
+          # (HT-36 T07); el token sale del secret DAST_API_TOKEN, nunca del repo.
+          cmd_options: '-a -z "-config scanner.maxScanDurationInMins=15 -config scanner.maxRuleDurationInMins=2 -config replacer.full_list(0).description=auth-bearer -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Authorization -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=\"Bearer ${{ secrets.DAST_API_TOKEN }}\""'
           allow_issue_writing: false
           fail_action: false
           artifact_name: zap-api
