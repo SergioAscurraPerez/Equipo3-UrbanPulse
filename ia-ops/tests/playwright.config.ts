@@ -8,6 +8,16 @@ import { defineConfig, devices } from '@playwright/test';
 // import path from 'path';
 // dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+/* Sin TE_N8N_BASE_URL, @urbanpulse/shared lanza antes de hacer la petición
+ * («TE_N8N_BASE_URL no está configurada») y page.route() nunca llega a
+ * interceptar nada: las pantallas que consultan n8n (el tablero de operativos
+ * de HU-09, por ejemplo) se quedarían vacías. La URL apunta a un puerto sin
+ * servicio a propósito: ninguna prueba debe llegar a un n8n real, las
+ * respuestas las simula cada spec con page.route(). */
+const ENTORNO_N8N = {
+  TE_N8N_BASE_URL: 'http://localhost:5678/webhook',
+};
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -112,6 +122,7 @@ export default defineConfig({
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
+      env: ENTORNO_N8N,
     },
     ...[
       ['mf-gestion-incidentes', 5173],
@@ -127,6 +138,7 @@ export default defineConfig({
       url: `http://localhost:${puerto}/remoteEntry.js`,
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
+      env: ENTORNO_N8N,
     })),
   ],
 });
