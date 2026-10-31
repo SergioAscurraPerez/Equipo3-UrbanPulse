@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 // HU-10 T06 — Aviso de alertas cercanas en la app (contrato C3,
@@ -25,13 +25,18 @@ import { join, resolve } from 'node:path';
 
 const RAIZ_HOST = resolve(__dirname, '..', '..', '..', 'src', 'frontend', 'src');
 
+// Se lee directamente y se captura el error, sin existsSync/statSync antes:
+// comprobar y luego usar deja una carrera (CodeQL js/file-system-race).
 function hostTieneAvisoAlerta(dir = RAIZ_HOST): boolean {
-  if (!existsSync(dir)) return false;
-  return readdirSync(dir).some((nombre) => {
-    const ruta = join(dir, nombre);
-    if (statSync(ruta).isDirectory()) return hostTieneAvisoAlerta(ruta);
-    return /\.(jsx?|tsx?)$/.test(nombre) && readFileSync(ruta, 'utf8').includes('AvisoAlerta');
-  });
+  try {
+    return readdirSync(dir, { withFileTypes: true }).some((entrada) => {
+      const ruta = join(dir, entrada.name);
+      if (entrada.isDirectory()) return hostTieneAvisoAlerta(ruta);
+      return /\.(jsx?|tsx?)$/.test(entrada.name) && readFileSync(ruta, 'utf8').includes('AvisoAlerta');
+    });
+  } catch {
+    return false;
+  }
 }
 
 const AVISO_LISTO = hostTieneAvisoAlerta();
