@@ -100,13 +100,11 @@ export default function LoginView() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(avisoDeSalida);
-  const [enlaceReset, setEnlaceReset] = useState(null);
 
   const limpiarMensajes = () => {
     olvidarMotivo();
     setError(null);
     setAviso(null);
-    setEnlaceReset(null);
   };
 
   const cambiarModo = (nuevo) => {
@@ -142,9 +140,8 @@ export default function LoginView() {
     try {
       if (modo === 'forgot') {
         const datos = await pedir(URLS.forgot(), { email: email.trim() });
-        if (!datos.success) throw new Error(datos.error || 'No se pudo generar el enlace.');
-        setAviso('Generamos un enlace de recuperación para tu cuenta.');
-        setEnlaceReset(datos.reset_url || null);
+        // HT-36 T04: respuesta siempre igual, exista o no la cuenta (no revela correos)
+        setAviso(datos.mensaje || 'Si el correo está registrado, te llegará un enlace. Revisa tu bandeja de entrada.');
         return;
       }
 
@@ -185,7 +182,7 @@ export default function LoginView() {
   const botones = {
     login: 'Iniciar sesión',
     register: 'Crear cuenta',
-    forgot: 'Generar enlace',
+    forgot: 'Enviar enlace',
     reset: 'Guardar contraseña',
   };
 
@@ -199,7 +196,7 @@ export default function LoginView() {
           <h1 className="text-xl font-bold text-center">{titulos[modo]}</h1>
           <p className="text-[var(--color-text-secondary)] text-sm mt-1 text-center">
             {modo === 'forgot'
-              ? 'Te daremos un enlace para definir una contraseña nueva.'
+              ? 'Te enviaremos un enlace a tu correo para definir una contraseña nueva.'
               : 'Accede a tu panel, historial y herramientas de análisis de la ciudad.'}
           </p>
         </div>
@@ -272,20 +269,6 @@ export default function LoginView() {
             <div className="flex items-start gap-2 text-emerald-400 text-sm">
               <CheckCircle size={16} className="shrink-0 mt-0.5" />
               <span>{aviso}</span>
-            </div>
-          )}
-
-          {enlaceReset && (
-            <div className="text-xs bg-[var(--color-bg-app)] border border-[var(--color-border)] rounded-xl p-3 space-y-2">
-              <p className="text-[var(--color-text-secondary)]">
-                Todavía no hay envío de correo configurado, así que aquí tienes el enlace:
-              </p>
-              <a
-                href={enlaceReset}
-                className="block text-[var(--color-accent-light)] underline break-all"
-              >
-                {enlaceReset}
-              </a>
             </div>
           )}
 
