@@ -36,17 +36,19 @@ jobs:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_CHAT_WEBHOOK_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+          FOLDER: ${{ inputs.folder }}
         run: |
-          FOLDER_ARG=""
-          if [ -n "${{ inputs.folder }}" ]; then
-            FOLDER_ARG="--folder ${{ inputs.folder }}"
+          # Arreglo en vez de cadena: el nombre de la carpeta lleva espacios.
+          FOLDER_ARG=()
+          if [ -n "$FOLDER" ]; then
+            FOLDER_ARG=(--folder "$FOLDER")
           fi
 
           newman run "postman/collections/UrbanPulse - Pruebas QA/.resources/UrbanPulse  Pruebas QA.postman_collection.json" \
             --env-var "n8n_webhook_url=$N8N_WEBHOOK_URL" \
             --env-var "gemini_api_key=$GEMINI_API_KEY" \
             --env-var "tomtom_api_key=$TOMTOM_API_KEY" \
-            $FOLDER_ARG \
+            "${FOLDER_ARG[@]}" \
             --reporters cli,htmlextra \
             --reporter-htmlextra-export newman-report/report.html
 
