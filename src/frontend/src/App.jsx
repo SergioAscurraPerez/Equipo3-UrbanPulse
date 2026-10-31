@@ -24,6 +24,7 @@ import RemoteBoundary, { lazyRemote } from './components/RemoteBoundary';
 console.log('HOST TE_N8N_BASE_URL =', import.meta.env.TE_N8N_BASE_URL);
 import './index.css';
 import RutaProtegida, { ROLES, getRol } from './components/RutaProtegida';
+import AvisoAlertas from './components/AvisoAlertas';
 
 const queryClient = new QueryClient();
 
@@ -449,6 +450,7 @@ function MainApp() {
           {/* URL inválida → inicio */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        {session && rol === ROLES.CIUDADANO && <AvisoAlertas rutaMapa="/mapa" />}
       </main>
     </div>
   );
