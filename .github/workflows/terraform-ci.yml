@@ -39,7 +39,7 @@ jobs:
       TF_VAR_jira_email: ${{ secrets.JIRA_EMAIL }}
       TF_VAR_jira_api_token: ${{ secrets.JIRA_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # HT-44 T02: analisis de seguridad del codigo Terraform ANTES del plan.
       #
@@ -210,7 +210,7 @@ jobs:
       TF_VAR_jira_email: ${{ secrets.JIRA_EMAIL }}
       TF_VAR_jira_api_token: ${{ secrets.JIRA_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: hashicorp/setup-terraform@v3
         with:
