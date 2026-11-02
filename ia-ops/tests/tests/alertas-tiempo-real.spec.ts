@@ -52,6 +52,9 @@ const SESION_CIUDADANO = {
 
 function inyectarSesion(page, sesion: Record<string, unknown>) {
   return page.addInitScript((datos) => {
+    // Sin esta clave el host muestra el diálogo «¿Quieres recibir alertas
+    // cercanas?» (AvisoAlertas.jsx), que tapa el chat y los botones.
+    window.localStorage.setItem('up_consentimiento_ubicacion', 'rechazado');
     window.localStorage.setItem(
       'urbanpulse_citizen_session',
       JSON.stringify({ ...datos, expires_at: new Date(Date.now() + 3600_000).toISOString() })
@@ -105,9 +108,9 @@ test.describe('CA1 · alertas con ubicación', () => {
     );
 
     await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'CHAT', exact: true }).click();
+    await page.getByRole('link', { name: 'CHAT', exact: true }).click();
 
-    await page.getByPlaceholder('Reporta un incidente....').fill(ALERTA.description);
+    await page.getByPlaceholder('Reporta un incidente').fill(ALERTA.description);
     await page.locator('form button[type="submit"]').click();
 
     await expect(page.getByText('Gracias, hemos registrado tu reporte.')).toBeVisible();
@@ -130,7 +133,7 @@ test.describe('CA1 · alertas con ubicación', () => {
     );
 
     await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'GESTIÓN DE INCIDENTES', exact: true }).click();
+    await page.getByRole('link', { name: 'GESTIÓN DE INCIDENTES', exact: true }).click();
 
     const fila = page.getByRole('row').filter({ hasText: ALERTA.description });
     await expect(fila).toBeVisible();
@@ -173,9 +176,9 @@ test.describe('CA1 · alertas sin permiso de ubicación', () => {
     );
 
     await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'CHAT', exact: true }).click();
+    await page.getByRole('link', { name: 'CHAT', exact: true }).click();
 
-    await page.getByPlaceholder('Reporta un incidente....').fill(ALERTA.description);
+    await page.getByPlaceholder('Reporta un incidente').fill(ALERTA.description);
     await page.locator('form button[type="submit"]').click();
 
     await expect(page.getByText('Gracias, hemos registrado tu reporte.')).toBeVisible();
@@ -219,7 +222,7 @@ test.describe('CA2 · caída y recuperación de la conexión', () => {
     );
 
     await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'GESTIÓN DE INCIDENTES', exact: true }).click();
+    await page.getByRole('link', { name: 'GESTIÓN DE INCIDENTES', exact: true }).click();
     await expect(page.getByRole('row').filter({ hasText: ALERTA.description })).toBeVisible();
   });
 

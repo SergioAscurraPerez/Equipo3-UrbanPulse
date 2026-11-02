@@ -69,6 +69,9 @@ const cerrar = (page: Page) =>
 
 function inyectarSesion(page: Page, sesion: Record<string, unknown>) {
   return page.addInitScript((datos) => {
+    // Sin esta clave el host muestra el diálogo «¿Quieres recibir alertas
+    // cercanas?» (AvisoAlertas.jsx) en lugar de los avisos.
+    window.localStorage.setItem('up_consentimiento_ubicacion', 'aceptado');
     window.localStorage.setItem(
       'urbanpulse_citizen_session',
       JSON.stringify({ ...datos, expires_at: new Date(Date.now() + 3600_000).toISOString() })
@@ -196,8 +199,8 @@ test.describe('HU-10 · aviso de alertas cercanas', () => {
     await expect.poll(() => backend.descartes).toHaveLength(1);
 
     // Sale a otra sección y vuelve: el host vuelve a consultar /alertas.
-    await page.getByRole('button', { name: 'MAPA', exact: true }).click();
-    await page.getByRole('button', { name: 'CHAT', exact: true }).click();
+    await page.getByRole('link', { name: 'MAPA', exact: true }).click();
+    await page.getByRole('link', { name: 'CHAT', exact: true }).click();
 
     await expect(aviso(page)).toHaveCount(0);
     expect(backend.descartes).toHaveLength(1);
@@ -233,7 +236,7 @@ test.describe('HU-10 · sin permiso de ubicación', () => {
     const backend = await simularBackendAlertas(page, []);
 
     await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('button', { name: 'CHAT', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'CHAT', exact: true })).toBeVisible();
 
     // Margen para que un envío indebido tuviera tiempo de ocurrir.
     await page.waitForTimeout(1500);
