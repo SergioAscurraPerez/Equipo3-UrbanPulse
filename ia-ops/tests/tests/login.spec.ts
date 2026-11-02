@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
   );
   await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
   // La autenticación vive dentro de la pestaña CHAT, no en una pantalla previa.
-  await page.getByRole('button', { name: 'CHAT', exact: true }).click();
+  await page.getByRole('link', { name: 'CHAT', exact: true }).click();
 });
 
 test('el formulario rechaza un correo con formato inválido', async ({ page }) => {
@@ -127,7 +127,7 @@ test('credenciales válidas dan acceso al chat', async ({ page }) => {
   await page.locator('form button[type="submit"]').click();
 
   // El formulario desaparece y queda disponible el chat de reportes.
-  await expect(page.getByPlaceholder('Reporta un incidente....')).toBeVisible();
+  await expect(page.getByPlaceholder('Reporta un incidente')).toBeVisible();
   await expect(page.getByPlaceholder('Correo electrónico')).toHaveCount(0);
 });
 
@@ -147,7 +147,7 @@ test('tras iniciar sesión, el panel lateral muestra el correo y el rol de la cu
   await page.getByPlaceholder('Contraseña', { exact: true }).fill('claveValida123');
   await page.locator('form button[type="submit"]').click();
 
-  await expect(page.getByPlaceholder('Reporta un incidente....')).toBeVisible();
+  await expect(page.getByPlaceholder('Reporta un incidente')).toBeVisible();
   await expect(page.locator('aside').getByText('operador1@example.com')).toBeVisible();
   await expect(page.locator('aside').getByText('Supervisor')).toBeVisible();
 });
@@ -163,7 +163,7 @@ test('el registro exitoso también da acceso al chat', async ({ page }) => {
   await page.getByPlaceholder('Repite la contraseña').fill('claveValida123');
   await page.locator('form button[type="submit"]').click();
 
-  await expect(page.getByPlaceholder('Reporta un incidente....')).toBeVisible();
+  await expect(page.getByPlaceholder('Reporta un incidente')).toBeVisible();
 });
 
 test('la recuperación de contraseña devuelve el enlace de reseteo', async ({ page }) => {
@@ -208,7 +208,7 @@ test('cerrar sesión vuelve a mostrar el login', async ({ page }) => {
   await page.getByPlaceholder('Correo electrónico').fill('ciudadano@ejemplo.com');
   await page.getByPlaceholder('Contraseña', { exact: true }).fill('claveValida123');
   await page.locator('form button[type="submit"]').click();
-  await expect(page.getByPlaceholder('Reporta un incidente....')).toBeVisible();
+  await expect(page.getByPlaceholder('Reporta un incidente')).toBeVisible();
 
   await page.locator('aside').getByTitle('Cerrar sesión').click();
 

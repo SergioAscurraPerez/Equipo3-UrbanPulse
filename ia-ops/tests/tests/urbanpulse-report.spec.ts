@@ -52,11 +52,11 @@ test.beforeEach(async ({ page }) => {
   });
 
   await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'CHAT', exact: true }).click();
+  await page.getByRole('link', { name: 'CHAT', exact: true }).click();
 });
 
 test('con sesión válida se entra directo al chat, sin formulario de login', async ({ page }) => {
-  await expect(page.getByPlaceholder('Reporta un incidente....')).toBeVisible();
+  await expect(page.getByPlaceholder('Reporta un incidente')).toBeVisible();
   await expect(page.getByPlaceholder('Correo electrónico')).toHaveCount(0);
 });
 
@@ -75,7 +75,7 @@ test('el ciudadano reporta un incidente por chat y ve el ticket confirmado', asy
     });
   });
 
-  const input = page.getByPlaceholder('Reporta un incidente....');
+  const input = page.getByPlaceholder('Reporta un incidente');
   await input.fill('Hay un bache enorme en la avenida principal');
   await page.locator('form button[type="submit"]').click();
 
@@ -99,7 +99,7 @@ test('el chat sigue preguntando cuando el reporte aún no está completo', async
     });
   });
 
-  await page.getByPlaceholder('Reporta un incidente....').fill('Hay un problema en la calle');
+  await page.getByPlaceholder('Reporta un incidente').fill('Hay un problema en la calle');
   await page.keyboard.press('Enter');
 
   await expect(page.getByText('¿Podrías indicarme la ubicación exacta del incidente?')).toBeVisible();
@@ -109,7 +109,7 @@ test('el chat sigue preguntando cuando el reporte aún no está completo', async
 test('el chat informa un error si el servidor no responde', async ({ page }) => {
   await page.route(CHAT_WEBHOOK_PATH, (route) => route.abort('failed'));
 
-  await page.getByPlaceholder('Reporta un incidente....').fill('Semáforo malogrado en la esquina');
+  await page.getByPlaceholder('Reporta un incidente').fill('Semáforo malogrado en la esquina');
   await page.keyboard.press('Enter');
 
   await expect(
@@ -128,7 +128,7 @@ test('el chat no envía mensajes que son solo espacios en blanco (UP-QA-01)', as
     route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   });
 
-  const input = page.getByPlaceholder('Reporta un incidente....');
+  const input = page.getByPlaceholder('Reporta un incidente');
   await input.fill('   ');
 
   const sendButton = page.locator('form button[type="submit"]');

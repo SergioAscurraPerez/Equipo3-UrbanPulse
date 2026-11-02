@@ -101,7 +101,7 @@ test.beforeEach(async ({ page }) => {
 test('el formulario de autenticación no tiene violaciones críticas de accesibilidad', async ({ page }) => {
   test.fail(); // D-15: contraste insuficiente en los elementos con --color-accent
   await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'CHAT', exact: true }).click();
+  await page.getByRole('link', { name: 'CHAT', exact: true }).click();
   await expect(page.getByPlaceholder('Correo electrónico')).toBeVisible();
 
   const results = await new AxeBuilder({ page })
@@ -118,8 +118,8 @@ test('el chat de reporte de incidentes no tiene violaciones críticas de accesib
   }, SESION_CIUDADANO);
 
   await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'CHAT', exact: true }).click();
-  await expect(page.getByPlaceholder('Reporta un incidente....')).toBeVisible();
+  await page.getByRole('link', { name: 'CHAT', exact: true }).click();
+  await expect(page.getByPlaceholder('Reporta un incidente')).toBeVisible();
 
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa'])
@@ -142,7 +142,7 @@ test('el panel analítico no tiene violaciones críticas de accesibilidad', asyn
   }, SESION_OPERADOR);
 
   await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'DASHBOARD', exact: true }).click();
+  await page.getByRole('link', { name: 'DASHBOARD', exact: true }).click();
   await expect(page.getByText('Total de Reportes')).toBeVisible();
 
   const results = await new AxeBuilder({ page })
@@ -162,7 +162,7 @@ test('el mapa urbano no tiene violaciones críticas de accesibilidad', async ({ 
   }, SESION_OPERADOR);
 
   await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'MAPA', exact: true }).click();
+  await page.getByRole('link', { name: 'MAPA', exact: true }).click();
   await expect(page.getByText('Tipo de incidente')).toBeVisible();
 
   const results = await new AxeBuilder({ page })
