@@ -212,6 +212,11 @@ test('cerrar sesión vuelve a mostrar el login', async ({ page }) => {
 
   await page.locator('aside').getByTitle('Cerrar sesión').click();
 
+  // Cerrar sesión lleva al inicio (App.jsx, handleLogout) y el panel vuelve a
+  // ofrecer «Iniciar sesión»; el chat vuelve a pedir el login.
+  await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
+  await page.getByRole('link', { name: 'CHAT', exact: true }).click();
+
   await expect(page.getByPlaceholder('Correo electrónico')).toBeVisible();
   await expect(page.getByPlaceholder('Contraseña', { exact: true })).toBeVisible();
 });

@@ -52,6 +52,9 @@ const SESION_CIUDADANO = {
 
 function inyectarSesion(page, sesion: Record<string, unknown>) {
   return page.addInitScript((datos) => {
+    // Sin esta clave el host muestra el diálogo «¿Quieres recibir alertas
+    // cercanas?» (AvisoAlertas.jsx), que tapa el chat y los botones.
+    window.localStorage.setItem('up_consentimiento_ubicacion', 'rechazado');
     window.localStorage.setItem(
       'urbanpulse_citizen_session',
       JSON.stringify({ ...datos, expires_at: new Date(Date.now() + 3600_000).toISOString() })

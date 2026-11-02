@@ -69,6 +69,9 @@ const cerrar = (page: Page) =>
 
 function inyectarSesion(page: Page, sesion: Record<string, unknown>) {
   return page.addInitScript((datos) => {
+    // Sin esta clave el host muestra el diálogo «¿Quieres recibir alertas
+    // cercanas?» (AvisoAlertas.jsx) en lugar de los avisos.
+    window.localStorage.setItem('up_consentimiento_ubicacion', 'aceptado');
     window.localStorage.setItem(
       'urbanpulse_citizen_session',
       JSON.stringify({ ...datos, expires_at: new Date(Date.now() + 3600_000).toISOString() })

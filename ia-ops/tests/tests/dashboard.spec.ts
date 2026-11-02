@@ -97,7 +97,7 @@ test('muestra un mensaje de error si el servidor de métricas falla', async ({ p
   await page.getByRole('link', { name: 'DASHBOARD', exact: true }).click();
 
   await expect(page.getByText('No se pudieron cargar los KPIs')).toBeVisible();
-  await expect(page.getByText('Error de conexión con n8n: 500')).toBeVisible();
+  await expect(page.getByText('Error HTTP: 500')).toBeVisible();
 });
 
 // D-14 CORREGIDO — mf-dashboard/vite.config.js ahora declara react/react-dom

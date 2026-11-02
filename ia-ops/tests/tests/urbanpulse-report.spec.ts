@@ -39,6 +39,9 @@ test.beforeEach(async ({ page }) => {
   // la clave 'urbanpulse_citizen_session' (ver mf-chatbot/src/session.js). El chat
   // exige 'id' porque lo usa como usuario_id al guardar el reporte y su historial.
   await page.addInitScript(() => {
+    // Sin esta clave el host muestra el diálogo «¿Quieres recibir alertas
+    // cercanas?» (AvisoAlertas.jsx), que tapa el botón de enviar del chat.
+    window.localStorage.setItem('up_consentimiento_ubicacion', 'rechazado');
     window.localStorage.setItem(
       'urbanpulse_citizen_session',
       JSON.stringify({
