@@ -38,6 +38,32 @@ const SLA_RESPUESTA_MS = 3000;
 const RUTA_PLAYWRIGHT = 'ia-ops/tests/reportes/playwright.json';
 const DIRECTORIO_NEWMAN = 'postman/reportes';
 
+// Conteo esperado (HT-37 T02). Playwright y Newman corren todo lo que encuentran,
+// asi que una spec o una coleccion que dejara de ejecutarse no rompe nada: la
+// certificacion simplemente seria mas corta y seguiria en verde. Se declaran las
+// suites que tienen que estar y el script se niega a certificar si falta alguna.
+// Al sumar una suite nueva hay que anadirla aqui y al workflow certificacion-sla.yml.
+const ESPECIFICACIONES_PLAYWRIGHT = [
+  'accesibilidad.spec.ts',
+  'alertas-cercanas.spec.ts', // HU-10
+  'alertas-tiempo-real.spec.ts', // HU-10
+  'contrato-host-remotes.spec.ts',
+  'dashboard-reactive.spec.ts', // HU-11
+  'dashboard.spec.ts', // HU-11
+  'kpis-operativos.spec.ts', // HU-11 T05
+  'login.spec.ts',
+  'mapa.spec.ts',
+  'operativos.spec.ts', // HU-09
+  'urbanpulse-report.spec.ts',
+];
+const REPORTES_NEWMAN = [
+  'regresion',
+  'llm-robustness',
+  'geojson-adversarial',
+  'operativos', // HU-09
+  'alertas-cercanas', // HU-10
+];
+
 const suites = [];
 const avisos = [];
 
@@ -61,9 +87,11 @@ function leerPlaywright() {
   // El json de Playwright anida suites dentro de suites; se recorre entero en
   // vez de asumir un solo nivel.
   const pendientes = [...(informe.suites ?? [])];
+  const especificaciones = new Set();
   while (pendientes.length) {
     const suite = pendientes.pop();
     pendientes.push(...(suite.suites ?? []));
+    if (suite.file) especificaciones.add(basename(suite.file));
 
     for (const spec of suite.specs ?? []) {
       for (const prueba of spec.tests ?? []) {
@@ -97,6 +125,14 @@ function leerPlaywright() {
     }
   }
 
+  const sinEjecutar = ESPECIFICACIONES_PLAYWRIGHT.filter((f) => !especificaciones.has(f));
+  if (sinEjecutar.length) {
+    avisos.push(
+      `Playwright no ejecuto ${sinEjecutar.length} de las ${ESPECIFICACIONES_PLAYWRIGHT.length} ` +
+        `specs esperadas: ${sinEjecutar.join(', ')}.`,
+    );
+  }
+
   suites.push({
     nombre: 'Playwright (E2E)',
     total,
@@ -124,6 +160,14 @@ function leerNewman() {
   if (archivos.length === 0) {
     avisos.push(`${DIRECTORIO_NEWMAN} no contiene reportes json de Newman.`);
     return;
+  }
+
+  const sinReporte = REPORTES_NEWMAN.filter((n) => !archivos.includes(`${n}.json`));
+  if (sinReporte.length) {
+    avisos.push(
+      `Faltan ${sinReporte.length} de los ${REPORTES_NEWMAN.length} reportes Newman esperados ` +
+        `en ${DIRECTORIO_NEWMAN}: ${sinReporte.map((n) => `${n}.json`).join(', ')}.`,
+    );
   }
 
   for (const archivo of archivos) {
