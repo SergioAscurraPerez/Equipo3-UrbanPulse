@@ -65,3 +65,16 @@ Viene ordenado por `semana` y `tipo`. Si un tipo no tuvo reportes resueltos en u
 ### 1.3 Sin datos
 
 Sin operativos cerrados, `operativos` llega como `[]` y la vista muestra «Aún no hay operativos cerrados».
+
+---
+
+## 2. Pruebas (HU-11 T05)
+
+**Autor:** Fabio Saavedra.
+
+| Suite | Archivo | Qué comprueba | Dónde corre |
+|---|---|---|---|
+| Playwright | `ia-ops/tests/tests/kpis-operativos.spec.ts` | Se cierra un operativo con `POST /operativos/asignar` y el gráfico de efectividad del dashboard suma su barra sin recargar la página (refresco de 30 s); la tarjeta del modelo del panel de riesgo muestra la etiqueta F1-macro con su valor a 3 decimales y «Pendiente» si `f1_macro` llega `null`. | `playwright.yml` |
+
+- Playwright simula el backend con `page.route()`: el cierre y `GET /kpis-operativos` comparten un estado en memoria, así que lo único que mueve el gráfico es el cierre. La espera del refresco es real (hasta 45 s), no con reloj simulado.
+- Los resultados quedan en `ia-ops/tests/reportes/playwright.json`, que lee `scripts/certificar-sla.mjs`.
