@@ -79,7 +79,7 @@ test('la pestaña Mapa carga sin errores de página (regresión: antes se congel
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_REPORTS) })
   );
 
-  await page.getByRole('button', { name: 'MAPA', exact: true }).click();
+  await page.getByRole('link', { name: 'MAPA', exact: true }).click();
   await page.waitForTimeout(500);
 
   expect(pageErrors).toEqual([]);
@@ -90,7 +90,7 @@ test('muestra la leyenda con los 7 tipos de incidente', async ({ page }) => {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_REPORTS) })
   );
 
-  await page.getByRole('button', { name: 'MAPA', exact: true }).click();
+  await page.getByRole('link', { name: 'MAPA', exact: true }).click();
 
   // La leyenda pasó a ser un panel con pestañas (Tipo · Prioridad · Calor ·
   // Tráfico) bajo la cabecera "Leyenda y Guía"; antes era una lista plana
@@ -109,7 +109,7 @@ test('pide el listado de reportes históricos al backend al entrar a Mapa', asyn
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_REPORTS) });
   });
 
-  await page.getByRole('button', { name: 'MAPA', exact: true }).click();
+  await page.getByRole('link', { name: 'MAPA', exact: true }).click();
 
   await expect.poll(() => requested).toBe(true);
 });
@@ -131,7 +131,7 @@ test('si el listado de reportes falla, el mapa y la leyenda se mantienen visible
 
   await page.route(REPORTS_LIST_PATH, (route) => route.abort('failed'));
 
-  await page.getByRole('button', { name: 'MAPA', exact: true }).click();
+  await page.getByRole('link', { name: 'MAPA', exact: true }).click();
   await page.waitForTimeout(500);
 
   await expect(page.getByText('Leyenda y Guía')).toBeVisible();

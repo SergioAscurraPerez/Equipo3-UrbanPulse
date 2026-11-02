@@ -86,7 +86,7 @@ test('muestra el estado de carga mientras llegan los KPIs', async ({ page }) => 
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_KPIS_RESPONSE) });
   });
 
-  await page.getByRole('button', { name: 'DASHBOARD', exact: true }).click();
+  await page.getByRole('link', { name: 'DASHBOARD', exact: true }).click();
 
   await expect(page.getByText('Cargando métricas de la ciudad...')).toBeVisible();
 });
@@ -94,10 +94,10 @@ test('muestra el estado de carga mientras llegan los KPIs', async ({ page }) => 
 test('muestra un mensaje de error si el servidor de métricas falla', async ({ page }) => {
   await page.route(KPIS_PATH, (route) => route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }));
 
-  await page.getByRole('button', { name: 'DASHBOARD', exact: true }).click();
+  await page.getByRole('link', { name: 'DASHBOARD', exact: true }).click();
 
   await expect(page.getByText('No se pudieron cargar los KPIs')).toBeVisible();
-  await expect(page.getByText('Error de conexión con n8n: 500')).toBeVisible();
+  await expect(page.getByText('Error HTTP: 500')).toBeVisible();
 });
 
 // D-14 CORREGIDO — mf-dashboard/vite.config.js ahora declara react/react-dom
@@ -111,7 +111,7 @@ test('muestra las tarjetas de KPIs y los gráficos con los datos recibidos', asy
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_KPIS_RESPONSE) })
   );
 
-  await page.getByRole('button', { name: 'DASHBOARD', exact: true }).click();
+  await page.getByRole('link', { name: 'DASHBOARD', exact: true }).click();
 
   await expect(page.getByText('Total de Reportes')).toBeVisible();
   await expect(page.getByText('128')).toBeVisible();
@@ -141,7 +141,7 @@ test('el botón Actualizar vuelve a pedir los KPIs al servidor', async ({ page }
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_KPIS_RESPONSE) });
   });
 
-  await page.getByRole('button', { name: 'DASHBOARD', exact: true }).click();
+  await page.getByRole('link', { name: 'DASHBOARD', exact: true }).click();
   await expect(page.getByText('Total de Reportes')).toBeVisible();
   // React.StrictMode duplica el efecto de carga inicial en desarrollo, así
   // que no se asume un conteo exacto (1), solo que "Actualizar" suma una
@@ -162,7 +162,7 @@ test('la congestión promedio muestra "—" cuando el backend no la envía', asy
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseSinCongestion) })
   );
 
-  await page.getByRole('button', { name: 'DASHBOARD', exact: true }).click();
+  await page.getByRole('link', { name: 'DASHBOARD', exact: true }).click();
 
   await expect(page.getByText('Congestión Promedio')).toBeVisible();
   await expect(page.getByText('—')).toBeVisible();

@@ -80,7 +80,7 @@ test('el operador cambia el estado de un ticket y lo ve reflejado sin recargar',
     });
   });
 
-  await page.getByRole('button', { name: 'GESTIÓN DE INCIDENTES', exact: true }).click();
+  await page.getByRole('link', { name: 'GESTIÓN DE INCIDENTES', exact: true }).click();
 
   const fila = page.getByRole('row').filter({ hasText: TICKET_INICIAL.description });
   await expect(fila).toBeVisible();
