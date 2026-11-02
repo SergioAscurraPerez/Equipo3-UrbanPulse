@@ -7,6 +7,12 @@
 #   CA1  Playwright (E2E) + Newman (API) pasan al 100% sin errores.
 #   CA2  Se entrega un reporte que certifica la calidad y el SLA.
 #
+# HT-37 T02 sumo las suites de HU-09 (operativos), HU-10 (alertas cercanas) y
+# HU-11 (KPIs de operativos). Las de HT-36 viajan en la etapa 7 de la coleccion
+# de regresion. Las specs de Playwright se descubren solas;
+# las colecciones Newman se listan aqui y en scripts/certificar-sla.mjs, que
+# se niega a certificar si falta alguna.
+#
 # Existe aparte de playwright.yml y de los workflows Newman porque esos corren
 # cada suite por su cuenta y ninguno puede afirmar nada sobre el conjunto. La
 # certificacion necesita verlas todas en la misma corrida: scripts/certificar-sla.mjs
@@ -28,6 +34,14 @@ on:
         required: false
         default: true
         type: boolean
+      entorno:
+        description: 'Entorno de las suites HU-09 y HU-10 (produccion: la de alertas ESCRIBE 3 usuarios y 1 reporte por corrida)'
+        required: false
+        default: staging
+        type: choice
+        options:
+          - staging
+          - produccion
 
 jobs:
   certificar:
@@ -117,6 +131,43 @@ jobs:
             --env-var "n8n_geojson_sutran_url=$N8N_GEOJSON_SUTRAN_URL" \
             --reporters cli,json \
             --reporter-json-export postman/reportes/geojson-adversarial.json
+
+      # HU-09: operativos (contrato C2). Solo lecturas. DAST_API_BASE_URL apunta a
+      # staging y termina en /webhook; la coleccion antepone /webhook a sus rutas.
+      - name: Ejecutar la suite de operativos (HU-09)
+        if: ${{ inputs.incluir_newman }}
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ inputs.entorno == 'produccion' && secrets.DAST_API_PROD_BASE_URL || secrets.DAST_API_BASE_URL }}
+          TOKEN_OPERADOR: ${{ secrets.NEWMAN_TOKEN_OPERADOR }}
+          TOKEN_CIUDADANO: ${{ secrets.NEWMAN_TOKEN_CIUDADANO }}
+        run: |
+          base="${BASE_URL%/}"
+          base="${base%/webhook}"
+          newman run "postman/collections/urbanpulse-operativos.postman_collection.json" \
+            --env-var "base_url=$base" \
+            --env-var "token_operador=$TOKEN_OPERADOR" \
+            --env-var "token_ciudadano=$TOKEN_CIUDADANO" \
+            --reporters cli,json \
+            --reporter-json-export postman/reportes/operativos.json
+
+      # HU-10: alertas cercanas (contrato C3). ESCRIBE en la base del entorno
+      # elegido (3 usuarios y 1 reporte por corrida, sin forma de borrarlos). La
+      # certificacion final (HT-37 T03) la corre en produccion con entorno=produccion.
+      - name: Ejecutar la suite de alertas cercanas (HU-10)
+        if: ${{ inputs.incluir_newman }}
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ inputs.entorno == 'produccion' && secrets.DAST_API_PROD_BASE_URL || secrets.DAST_API_BASE_URL }}
+          EVENT_TOKEN: ${{ secrets.EVENT_ROUTER_TOKEN }}
+        run: |
+          base="${BASE_URL%/}"
+          base="${base%/webhook}"
+          newman run "postman/collections/urbanpulse-alertas-cercanas.postman_collection.json" \
+            --env-var "base_url=$base" \
+            --env-var "event_token=$EVENT_TOKEN" \
+            --reporters cli,json \
+            --reporter-json-export postman/reportes/alertas-cercanas.json
 
       # --- Veredicto ---------------------------------------------------------
       - name: Emitir la certificacion
