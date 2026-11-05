@@ -6,7 +6,7 @@
         "rule": {
           "interval": [
             {
-              "field": "hours"
+              "daysInterval": 7
             }
           ]
         }
