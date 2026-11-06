@@ -127,7 +127,7 @@ jobs:
 
       - name: Disparar Auto Re-entrenamiento en mlops-pipeline.yml (HT-49 T03)
         if: steps.drift_eval.outputs.deriva == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             console.log('🚀 Disparando automáticamente mlops-pipeline.yml para re-entrenar modelo Challenger...');
