@@ -115,7 +115,7 @@
         "path": "urbanpulse/chat",
         "responseMode": "lastNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "https://equipo3-urban-pulse.vercel.app,https://equipo3-u-git-cc0c7a-sebastiannnnnnnnnnnnnnnnnnnnnnnns-projects.vercel.app,http://localhost:3000,http://localhost:3003,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5181"
         }
       },
       "type": "n8n-nodes-base.webhook",
@@ -1144,7 +1144,7 @@
         "path": "urbanpulse/auth/login",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "https://equipo3-urban-pulse.vercel.app,https://equipo3-u-git-cc0c7a-sebastiannnnnnnnnnnnnnnnnnnnnnnns-projects.vercel.app,http://localhost:3000,http://localhost:3003,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5181"
         }
       },
       "type": "n8n-nodes-base.webhook",
@@ -1353,7 +1353,7 @@
         "path": "urbanpulse/auth/register",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "https://equipo3-urban-pulse.vercel.app,https://equipo3-u-git-cc0c7a-sebastiannnnnnnnnnnnnnnnnnnnnnnns-projects.vercel.app,http://localhost:3000,http://localhost:3003,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5181"
         }
       },
       "type": "n8n-nodes-base.webhook",
@@ -1527,7 +1527,7 @@
         "path": "urbanpulse/auth/reset",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "https://equipo3-urban-pulse.vercel.app,https://equipo3-u-git-cc0c7a-sebastiannnnnnnnnnnnnnnnnnnnnnnns-projects.vercel.app,http://localhost:3000,http://localhost:3003,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5181"
         }
       },
       "type": "n8n-nodes-base.webhook",
@@ -2485,7 +2485,7 @@
         "path": "urbanpulse/auth/forgot",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "https://equipo3-urban-pulse.vercel.app,https://equipo3-u-git-cc0c7a-sebastiannnnnnnnnnnnnnnnnnnnnnnns-projects.vercel.app,http://localhost:3000,http://localhost:3003,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5181"
         }
       },
       "type": "n8n-nodes-base.webhook",
@@ -3990,7 +3990,7 @@
     "availableInMCP": false,
     "errorWorkflow": "vPbn1fp5YIuktC25"
   },
-  "versionId": "eba423f3-adfa-43b7-8597-23393652264e",
+  "versionId": "44a14335-01f9-4f81-b53b-800c635d7c3b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "954822bcb0252493706022c5abd9df94db1655579dfc0586eeeabb7008e50537"
